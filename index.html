@@ -6,7 +6,7 @@
 <title>SIA: Selective Image Analogy &middot; SIGGRAPH Asia 2026</title>
 
 <meta name="description" content="Selective Image Analogy (SIA): a single before/after demonstration pair encodes several edits, and the user picks at inference time which of them transfer to a new query image. SIGGRAPH Asia 2026.">
-<meta name="author" content="Amirhossein Alimohammadi, Kian Izadpanah, Bardiya Kariminia, Yiorgos Chrysanthou, Ali Mahdavi-Amiri">
+<meta name="author" content="Amir Alimohammadi, Kian Izadpanah, Bardiya Kariminia, Yiorgos Chrysanthou, Ali Mahdavi-Amiri">
 <meta name="keywords" content="image analogy, selective image analogy, image editing, diffusion models, LoRA, concept suppression, SIGGRAPH Asia 2026">
 <link rel="canonical" href="https://selective-image-analogy.github.io/">
 
@@ -14,27 +14,36 @@
 <meta property="og:title" content="SIA: Selective Image Analogy">
 <meta property="og:description" content="One before/after pair. You choose which of its edits carry over. SIGGRAPH Asia 2026.">
 <meta property="og:url" content="https://selective-image-analogy.github.io/">
-<meta property="og:image" content="https://selective-image-analogy.github.io/static/figures/teaser.png">
+<meta property="og:image" content="https://selective-image-analogy.github.io/static/figures/teaser.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="SIA: Selective Image Analogy">
 <meta name="twitter:description" content="One before/after pair. You choose which of its edits carry over. SIGGRAPH Asia 2026.">
-<meta name="twitter:image" content="https://selective-image-analogy.github.io/static/figures/teaser.png">
+<meta name="twitter:image" content="https://selective-image-analogy.github.io/static/figures/teaser.jpg">
 
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="static/favicon.svg">
+<link rel="icon" href="static/favicon-96.png" sizes="96x96" type="image/png">
+<link rel="icon" href="static/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="static/apple-touch-icon.png">
 
-<meta name="theme-color" content="#F8F7F4">
+<meta name="theme-color" content="#121826">
 
-<!-- Source Serif 4 for display type, Noto Sans for text, JetBrains Mono for
-     labels and code. -->
+<!-- Dark is the default; apply a stored choice before first paint so a reader
+     who picked light never sees a dark flash. -->
+<script>
+  try { if (localStorage.getItem("sia-theme") === "light")
+          document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+</script>
+
+<!-- Inter for text, Source Serif 4 italic for the A/A'/B notation, JetBrains
+     Mono for labels and code. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;450;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,400..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="static/css/style.css">
 </head>
 <body>
 
-<a class="skip" href="#abstract">Skip to content</a>
+<a class="skip" href="#results">Skip to content</a>
 
 <!-- ============================== NAV ============================== -->
 <nav class="nav" id="nav">
@@ -44,8 +53,9 @@
       <span class="brand-sub">Selective Image Analogy</span>
     </a>
     <ul class="navlinks">
-      <li><a class="lnk" href="#abstract">Abstract</a></li>
       <li><a class="lnk" href="#results">Try&nbsp;it</a></li>
+      <li><a class="lnk" href="#video">Video</a></li>
+      <li><a class="lnk" href="#abstract">Abstract</a></li>
       <li><a class="lnk" href="#examples">Examples</a></li>
       <li><a class="lnk" href="#method">Method</a></li>
       <li><a class="lnk" href="#evaluation">Evaluation</a></li>
@@ -61,12 +71,21 @@
 
 <!-- ============================ MASTHEAD =========================== -->
 <header class="masthead" id="top">
+  <!-- a tilted wall of real SIA outputs, built by tools/build_wall.py. The
+       light copy paints first, even on a weak connection; app.js then sets it
+       drifting and swaps in the full-quality wall once that has downloaded -->
+  <div class="wall" aria-hidden="true">
+    <img src="static/figures/wall-lite.webp?v=4" width="2286" height="1670" alt="" fetchpriority="high" decoding="async">
+    <noscript><img src="static/figures/wall.webp?v=4" width="2286" height="1670" alt=""></noscript>
+  </div>
+
   <div class="wrap">
     <div class="venue">SIGGRAPH Asia 2026</div>
 
-    <h1>SIA: <em>Selective Image Analogy</em></h1>
+    <h1>SIA<span class="visually-hidden">:</span> <span class="h1-sub">Selective Image Analogy</span></h1>
+    <p class="tagline">Show one before/after example. Choose which of its edits carry over to your image.</p>
     <div class="authors">
-      <span class="author"><a href="https://alimohammadiamirhossein.github.io/" target="_blank" rel="noopener">Amirhossein Alimohammadi</a><sup>1<span class="eq">*</span></sup></span><span class="sep">,</span>
+      <span class="author"><a href="https://alimohammadiamirhossein.github.io/" target="_blank" rel="noopener">Amir Alimohammadi</a><sup>1<span class="eq">*</span></sup></span><span class="sep">,</span>
       <span class="author"><a href="https://kianizadpanah.github.io" target="_blank" rel="noopener">Kian Izadpanah</a><sup>1,2<span class="eq">*</span></sup></span><span class="sep">,</span>
       <span class="author"><a href="https://bardiya2254kariminia.github.io/" target="_blank" rel="noopener">Bardiya Kariminia</a><sup>3</sup></span><span class="sep">,</span>
       <span class="author"><a href="https://www.cs.ucy.ac.cy/~yiorgos/" target="_blank" rel="noopener">Yiorgos Chrysanthou</a><sup>2,4</sup></span><span class="sep">,</span>
@@ -82,6 +101,10 @@
     <p class="eqnote"><span class="eq">*</span> Both authors contributed equally to this research.</p>
 
     <nav class="links" aria-label="Paper resources">
+      <a class="btn primary" href="#results">
+        Try the demo
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+      </a>
       <!-- No href yet: drop the link in once the preprint and the repo are public. -->
       <span class="btn pending" role="link" aria-disabled="true" title="Coming soon">
         <svg width="16" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4h18v2H3zM3 11h18v2H3zM3 18h12v2H3z"/></svg>
@@ -91,83 +114,25 @@
         <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.07-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a4.1 4.1 0 011-.14c.34 0 .68.05 1 .14 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.995 7.995 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
         Code
       </span>
-      <a class="btn primary" href="#cite">
+      <a class="btn" href="#cite">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5H5.5A1.5 1.5 0 004 6.5V10a1.5 1.5 0 001.5 1.5H8V15c0 2-1.2 3.4-3 4"/><path d="M19 5h-2.5A1.5 1.5 0 0015 6.5V10a1.5 1.5 0 001.5 1.5H19V15c0 2-1.2 3.4-3 4"/></svg>
         BibTeX
       </a>
     </nav>
   </div>
+
+  <a class="cue" href="#results">Scroll to try it
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></a>
 </header>
 
-<!-- ============================= TEASER ============================ -->
-<div class="figure-block">
-  <div class="wrap">
-    <figure class="fig fig-teaser">
-      <button class="fig-shell" type="button" data-zoom="static/figures/teaser.png"
-              data-caption="Fig. 1" aria-label="Enlarge the teaser figure">
-        <picture>
-          <source srcset="static/figures/teaser.webp" type="image/webp">
-          <img src="static/figures/teaser.png" width="2400" height="1570"
-               alt="Teaser: a demonstration pair adds an SIA logo, a happy expression and a Batu Caves background; SIA reproduces every subset of those three edits on a new query image.">
-        </picture>
-        <span class="zoomhint"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"/></svg> Enlarge</span>
-      </button>
-      <figcaption>
-        A single reference pair (<em>A</em>, <em>A&prime;</em>) may contain multiple edits at once. In this example
-        the changes include adding a logo, changing the expression, and replacing the background. Given a new query
-        image <em>B</em>, SIA lets the user choose which edits to transfer. The same demonstration can produce
-        different outputs, ranging from single-edit results to combinations of selected edits, while leaving the
-        remaining edits out.
-      </figcaption>
-    </figure>
-  </div>
-</div>
-
-<!-- ============================ ABSTRACT =========================== -->
-<section class="band" id="abstract">
-  <div class="wrap">
-    <div class="eyebrow">Abstract</div>
-    <h2>A demonstration pair carries several edits. Take only the ones you want.</h2>
-    <div class="abs-grid">
-    <div class="prose">
-      <p>
-        Image analogy copies a change shown by a before/after pair (<em>A</em>,&nbsp;<em>A&prime;</em>) onto a new
-        image <em>B</em>. But one pair usually holds several edits at once, and existing methods transfer all of
-        them &mdash; you cannot ask for only some.
-      </p>
-      <p>
-        We introduce <b>Selective Image Analogy</b> (SIA): the pair stays fixed, and you choose which of its edits
-        to apply. SIA first learns to transfer the whole change, then gains control from a mask over the edit words.
-        The mask acts twice &mdash; it weakens the unwanted words in the text embedding, and gates a small adapter
-        to them while the image is generated. The unwanted edits are dropped and the chosen ones stay, even though
-        every edit is still visible in <em>A&prime;</em>, and no new pair is needed for each combination.
-      </p>
-    </div>
-
-    <aside class="glance">
-      <div class="col-label">At a glance</div>
-      <dl>
-        <dt>Setting</dt>
-        <dd>One multi-edit demonstration, a user-chosen subset of its edits.</dd>
-        <dt>Selection signal</dt>
-        <dd>A token-level mask over the edit phrases in the analogy prompt.</dd>
-        <dt>Components</dt>
-        <dd>AnaLoRA &middot; ExLoRA &middot; Concept Suppression Vector</dd>
-        <dt>Backbone</dt>
-        <dd>FLUX.2-Klein, concat mode, 30 denoising steps.</dd>
-      </dl>
-    </aside>
-    </div>
-  </div>
-</section>
-
 <!-- ============================ RESULTS ============================ -->
-<section id="results">
+<section id="results" class="demo-first">
   <div class="wrap">
-    <div class="eyebrow">Results &middot; interactive</div>
-    <h2>Switch any edit off. Same pair, different output.</h2>
-    <p class="lede">Every edit starts kept &mdash; click one to suppress it. The demonstration pair never
-      changes, only the result. Every image here is a real SIA output.</p>
+    <div class="eyebrow">Interactive demo</div>
+    <h2>Switch edits on and off. Same pair, different output.</h2>
+    <p class="lede">Each example opens with its edits switched on &mdash; switch any of them off, or back on,
+      one at a time or together, and watch the result change. The demonstration pair never changes, only the
+      result. Every image here is a real SIA output.</p>
 
     <div class="strip" id="strip" role="tablist" aria-label="Choose a demonstration"></div>
 
@@ -223,7 +188,7 @@
         <div class="boardfoot">
           <p class="hintline" id="chipHint"></p>
           <div class="footctl">
-            <button class="linkbtn" id="reset" type="button">Keep all edits</button>
+            <button class="linkbtn" id="reset" type="button">Turn all edits on</button>
             <span class="counter" id="counter">&mdash;</span>
             <span class="stepper">
               <button class="tbtn sm" id="cPrev" type="button" aria-label="Previous rendered combination"><svg width="8" height="13" viewBox="0 0 9 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 1L1.5 7l6 6"/></svg></button>
@@ -236,27 +201,134 @@
   </div>
 </section>
 
+<!-- ============================== VIDEO ============================ -->
+<!-- To swap the video, change data-yt to the new ID (the part after youtu.be/
+     in the share link) and update the label; the poster and the YouTube link
+     follow the ID. The player itself loads only when clicked, from
+     youtube-nocookie.com, so the page carries no YouTube script or cookies
+     until someone asks for the video. -->
+<section class="band" id="video">
+  <div class="wrap">
+    <div class="eyebrow">Video</div>
+    <h2>See how SIA works.</h2>
+
+    <div class="yt" data-yt="HU010YnVEwI" data-title="SIA: Selective Image Analogy — Method Explained (SIGGRAPH Asia 2026)">
+      <button class="yt-play" type="button" aria-label="Play the video">
+        <img class="yt-poster" alt="" loading="lazy" decoding="async">
+        <span class="yt-btn" aria-hidden="true">
+          <svg width="26" height="30" viewBox="0 0 26 30" fill="currentColor"><path d="M2 2.6v24.8c0 1.5 1.6 2.4 2.9 1.7l20.4-12.4a2 2 0 000-3.4L4.9.9C3.6.2 2 1.1 2 2.6z"/></svg>
+        </span>
+        <span class="yt-label"><b>Method explained</b> &middot; SIGGRAPH Asia 2026</span>
+      </button>
+    </div>
+    <p class="yt-links">
+      <a class="yt-open" href="https://www.youtube.com/watch?v=HU010YnVEwI" target="_blank" rel="noopener">Watch on YouTube</a>
+      <!-- For readers where YouTube is blocked: attach a compressed MP4 to a
+           GitHub release of this repo, then add
+           &middot; <a href="https://github.com/selective-image-analogy/selective-image-analogy.github.io/releases/download/TAG/FILE.mp4">Can't open YouTube? Download the MP4</a> -->
+    </p>
+  </div>
+</section>
+
+<!-- ============================= TEASER ============================ -->
+<div class="figure-block">
+  <div class="wrap">
+    <figure class="fig fig-teaser">
+      <!-- vector, built from new figures/Teaser.drawio by tools/build_arch.py:
+           the figure without its moving parts, and over it the layer that
+           builds them, which app.js plays as the figure comes into view (once,
+           from a fresh copy each time). Without script, the still figure -->
+      <button class="fig-shell vec" type="button" data-zoom="static/figures/teaser.svg"
+              data-caption="Fig. 1" aria-label="Enlarge the teaser figure">
+        <span class="vec-stage">
+          <img src="static/figures/teaser-base-dark.svg" data-still-dark="static/figures/teaser-dark.svg" data-still-light="static/figures/teaser.svg"
+               data-base-dark="static/figures/teaser-base-dark.svg" data-base-light="static/figures/teaser-base.svg"
+               width="912" height="600" loading="lazy" decoding="async"
+               alt="Teaser: a demonstration pair adds an SIA logo, a happy expression and a Batu Caves background; SIA reproduces every subset of those three edits on a new query image.">
+          <img class="vec-live" data-play-dark="static/figures/teaser-live-dark.svg" data-play-light="static/figures/teaser-live.svg"
+               data-lite-dark="static/figures/teaser-live-lite-dark.svg" data-lite-light="static/figures/teaser-live-lite.svg"
+               width="912" height="600" alt="" hidden>
+          <noscript><img class="vec-live" src="static/figures/teaser-dark.svg" width="912" height="600" alt=""></noscript>
+        </span>
+        <span class="zoomhint"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"/></svg> Enlarge</span>
+      </button>
+      <button class="fig-replay" type="button" hidden><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 3v5h5"/></svg> Replay</button>
+      <figcaption>
+        A single reference pair (<em>A</em>, <em>A&prime;</em>) may contain multiple edits at once. In this example
+        the changes include adding a logo, changing the expression, and replacing the background. Given a new query
+        image <em>B</em>, SIA lets the user choose which edits to transfer. The same demonstration can produce
+        different outputs, ranging from single-edit results to combinations of selected edits, while leaving the
+        remaining edits out.
+      </figcaption>
+    </figure>
+  </div>
+</div>
+
+<!-- ============================ ABSTRACT =========================== -->
+<section id="abstract">
+  <div class="wrap">
+    <div class="eyebrow">Abstract</div>
+    <h2>A demonstration pair carries several edits. Take only the ones you want.</h2>
+    <div class="abs-grid">
+    <div class="prose">
+      <p>
+        Image analogy copies a change shown by a before/after pair (<em>A</em>,&nbsp;<em>A&prime;</em>) onto a new
+        image <em>B</em>. But one pair usually holds several edits at once, and existing methods transfer all of
+        them &mdash; you cannot ask for only some.
+      </p>
+      <p>
+        We introduce <b>Selective Image Analogy</b> (SIA): the pair stays fixed, and you choose which of its edits
+        to apply. SIA first learns to transfer the whole change, then gains control from a mask over the edit words.
+        The mask acts twice &mdash; it weakens the unwanted words in the text embedding, and gates a small adapter
+        to them while the image is generated. The unwanted edits are dropped and the chosen ones stay, even though
+        every edit is still visible in <em>A&prime;</em>, and no new pair is needed for each combination.
+      </p>
+    </div>
+
+    <aside class="glance">
+      <div class="col-label">At a glance</div>
+      <dl>
+        <dt>Setting</dt>
+        <dd>One multi-edit demonstration, a user-chosen subset of its edits.</dd>
+        <dt>Selection signal</dt>
+        <dd>A token-level mask over the edit phrases in the analogy prompt.</dd>
+        <dt>Components</dt>
+        <dd>AnaLoRA &middot; ExLoRA &middot; Concept Suppression Vector</dd>
+        <dt>Backbone</dt>
+        <dd>FLUX.2-Klein, concat mode, 30 denoising steps.</dd>
+      </dl>
+    </aside>
+    </div>
+  </div>
+</section>
+
 <!-- ============================ EXAMPLES =========================== -->
+<!-- Filled by app.js from SIA_EXAMPLES (EXAMPLE_ORDER in tools/build_images.py):
+     one example at a time in #exStage, playing on its own; #exBar shows how
+     long until the next. -->
 <section class="band" id="examples">
   <div class="wrap">
-    <div class="eyebrow">More examples</div>
-    <h2>Drag across the result to see what stayed behind.</h2>
-    <p class="lede">One suppression setting per example. Drag the slider to wipe between the untouched
-      query image and the result.</p>
+    <div class="ex-head">
+      <div class="eyebrow">Examples</div>
+      <h2>One demonstration, a chosen subset of its edits.</h2>
+      <p class="lede">The examples play one after another: the slider sweeps across to reveal SIA&rsquo;s
+        result, then moves on. <span class="when-hover">Hover to pause, or pick one from the row underneath.</span><span class="when-touch">Tap pause to hold one, or pick one from the row underneath.</span></p>
+    </div>
 
-    <div id="cinemaHost"></div>
-
-    <div class="transport">
-      <div class="filmwrap at-start" id="filmwrap">
-        <div class="film" id="film" tabindex="0" role="group"
-             aria-label="All examples — scroll sideways"></div>
+    <div class="ex-stage" id="exStage" aria-live="off"></div>
+    <div class="ex-progress" aria-hidden="true"><span id="exBar"></span></div>
+    <div class="ex-tools">
+      <button class="tbtn" id="exPlay" type="button" aria-label="Pause the examples"><svg class="i-pause" width="12" height="14" viewBox="0 0 12 14" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="3.4" height="12" rx="1"/><rect x="7.6" y="1" width="3.4" height="12" rx="1"/></svg><svg class="i-play" width="12" height="14" viewBox="0 0 12 14" fill="currentColor" aria-hidden="true"><path d="M2 1.6v10.8c0 .8.9 1.3 1.6.8l7.6-5.4c.6-.4.6-1.2 0-1.6L3.6.8C2.9.3 2 .8 2 1.6z"/></svg></button>
+      <div class="ex-nav">
+        <button class="tbtn" id="exPrev" type="button" aria-label="Previous example"><svg width="9" height="14" viewBox="0 0 9 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 1L1.5 7l6 6"/></svg></button>
+        <div class="ex-railwrap at-start"><div class="ex-rail" id="exRail" role="group" aria-label="Examples"></div></div>
+        <button class="tbtn" id="exNext" type="button" aria-label="Next example"><svg width="9" height="14" viewBox="0 0 9 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1l6 6-6 6"/></svg></button>
       </div>
+      <button class="btn" id="exSurprise" type="button" title="Surprise me">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.1" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="currentColor"/></svg>
+        Surprise me
+      </button>
     </div>
-
-    <div class="moretoggle">
-      <button id="showAll" type="button">Show all examples at once</button>
-    </div>
-    <div class="allgrid" id="allgrid" hidden></div>
   </div>
 </section>
 
@@ -268,66 +340,241 @@
     <p class="lede">Before denoising the mask weakens the suppressed tokens in the text embedding; during denoising
       it gates the adapter to those same tokens. The demonstration pair and the prompt stay untouched.</p>
 
-    <figure class="fig fig-arch">
-      <button class="fig-shell" type="button" data-zoom="static/figures/architecture.png"
-              data-caption="Fig. 2 &mdash; Overview of our selective image analogy pipeline." aria-label="Enlarge the pipeline figure">
+    <!-- The paper's Fig. 2, part by part. Each step's region (percent of the
+         figure, measured from the PDF's own geometry) is on its button. -->
+    <figure class="fig fig-arch tour" id="tour">
+      <div class="tour-steps" role="group" aria-label="Parts of the pipeline">
+        <button type="button" data-step="0" aria-pressed="true">Overview</button>
+        <button type="button" data-step="1" data-r="0 0 31 61"><i>1</i>Inputs</button>
+        <button type="button" data-step="2" data-r="0 62 31 88"><i>2</i>Prompt</button>
+        <button type="button" data-step="3" data-r="32.4 0 77.3 43"><i>3</i>Transformer</button>
+        <button type="button" data-step="4" data-r="32.5 44.4 65.7 100"><i>4</i>AnaLoRA&thinsp;+&thinsp;ExLoRA</button>
+        <button type="button" data-step="5" data-r="65.9 44.6 100 100"><i>5</i>CSV</button>
+        <button type="button" data-step="6" data-r="77.4 0 99.6 43"><i>6</i>Output</button>
+      </div>
+      <div class="tour-stage">
+        <!-- vector, built from the draw.io source by tools/build_arch.py: the
+             still figure (no background; app.js picks the file for the
+             theme), and over it the layer of parts that move -->
+        <div class="tour-canvas">
         <picture>
-          <source srcset="static/figures/architecture.webp" type="image/webp">
-          <img src="static/figures/architecture.png" width="2600" height="1088" loading="lazy"
-               alt="Pipeline: A, A prime and B are encoded and concatenated with the analogy prompt; retained tokens route through AnaLoRA while suppressed tokens additionally route through ExLoRA, and the Concept Suppression Vector is estimated from contrastive prompt pairs.">
+          <source media="(prefers-reduced-motion: reduce)" srcset="static/figures/architecture-dark.svg">
+          <img src="static/figures/architecture-base-dark.svg" width="1189" height="497" loading="lazy" decoding="async"
+             alt="Pipeline: A, A prime and B are encoded and concatenated with the analogy prompt; retained tokens route through AnaLoRA while suppressed tokens additionally route through ExLoRA, and the Concept Suppression Vector weakens the suppressed edit in the text embedding.">
         </picture>
-        <span class="zoomhint"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"/></svg> Enlarge</span>
-      </button>
-      <figcaption>
-        <b>Overview of our selective image analogy pipeline.</b>
-        Given a demonstration pair (<em>A</em>, <em>A&prime;</em>) containing multiple edits and a query image
-        <em>B</em>, the model transfers only the user-selected edits to produce <em>B&prime;</em>. In this example,
-        green textual tokens indicate retained edits that should be applied to <em>B</em>, while red textual tokens
-        indicate suppressed edits that should not be transferred, even though they are present in <em>A&prime;</em>.
-        The visual analogy guides the overall edit transfer, while the colored textual tokens specify which edits are
-        retained or suppressed using selective token suppression and the Concept Suppression Vector (CSV).
+        <img class="tour-live" src="static/figures/architecture-live-dark.svg" width="1189" height="497" loading="lazy" alt="">
+        <span class="tour-spot" id="tourSpot" aria-hidden="true"></span>
+        <div class="tour-hots" id="tourHots"></div>
+        </div>
+        <!-- the hovered part, enlarged (pointer devices only) -->
+        <button class="tour-pop" id="tourPop" type="button" tabindex="-1" aria-hidden="true"><span><img alt="" loading="lazy"><img alt="" loading="lazy"></span></button>
+        <button class="tour-zoom" type="button" data-zoom="static/figures/architecture.svg"
+                data-caption="Fig. 2 &mdash; Overview of our selective image analogy pipeline."
+                aria-label="Enlarge the pipeline figure"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"/></svg><span>Enlarge</span></button>
+      </div>
+      <figcaption class="tour-cap">
+        <div class="tour-text" id="tourText" aria-live="polite">
+          <div data-step="0"><b>Overview of our selective image analogy pipeline.</b>
+            Given a demonstration pair (<em>A</em>, <em>A&prime;</em>) containing multiple edits and a query image
+            <em>B</em>, the model transfers only the user-selected edits to produce <em>B&prime;</em>. Here the swan
+            keeps the black feathers (green tokens) but not the open wings (red tokens).
+            <span class="when-hover">Hover over a part of the figure to enlarge it, and click it to read about it.</span>
+            <span class="when-touch">Step through the parts, or tap one in the figure to zoom in on it; tap it again to zoom back out.</span></div>
+          <div data-step="1" hidden><b>1&ensp;Inputs.</b> The demonstration pair <em>A</em>&nbsp;&rarr;&nbsp;<em>A&prime;</em>,
+            the query <em>B</em> and a noise latent are encoded into visual tokens.</div>
+          <div data-step="2" hidden><b>2&ensp;Prompt.</b> The prompt names every demonstrated edit. Its tokens are marked:
+            green for edits to keep (<i>turn feathers black</i>), red for edits to drop (<i>open wings</i>).</div>
+          <div data-step="3" hidden><b>3&ensp;Transformer.</b> Visual and text tokens are concatenated and processed together
+            by the <em>N</em> transformer blocks of FLUX.2-Klein.</div>
+          <div data-step="4" hidden><b>4&ensp;AnaLoRA + ExLoRA.</b> Inside attention, AnaLoRA, trained on full
+            analogies (<em>A</em>, <em>A&prime;</em>, <em>B</em>, <em>B&prime;</em>), adapts every token.
+            ExLoRA, a token-gated LoRA, adds its update only at the tokens of the dropped edit.</div>
+          <div data-step="5" hidden><b>5&ensp;Concept Suppression Vector.</b> Qwen-VL writes contrastive prompts with
+            and without the dropped edit; the difference of their mean embeddings is the edit&rsquo;s direction, which
+            is removed from the dropped tokens before denoising.</div>
+          <div data-step="6" hidden><b>6&ensp;Output.</b> The decoder produces <em>B&prime;</em>: the black feathers
+            are carried over and the wings stay folded.</div>
+        </div>
+        <div class="tour-nav">
+          <button class="tbtn sm" id="tourPrev" type="button" aria-label="Previous part"><svg width="9" height="14" viewBox="0 0 9 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 1L1.5 7l6 6"/></svg></button>
+          <button class="tbtn sm" id="tourNext" type="button" aria-label="Next part"><svg width="9" height="14" viewBox="0 0 9 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1l6 6-6 6"/></svg></button>
+        </div>
       </figcaption>
     </figure>
 
-    <div class="cards">
-      <article class="card">
-        <div class="cardnum">01</div>
-        <h3>AnaLoRA &mdash; learn the whole analogy first</h3>
-        <p>A lightweight LoRA adapter on FLUX.2-Klein, trained in concat mode on the four-image tuple
-          (<em>A</em>, <em>A&prime;</em>, <em>B</em>, <em>B&prime;</em>). The latents of <em>A</em>, <em>A&prime;</em>
-          and <em>B</em> are packed as visual conditioning and paired with a structured analogy prompt that names
-          <em>all</em> demonstrated edits. After this stage the model reliably performs full transfer.</p>
-      </article>
-      <article class="card">
-        <div class="cardnum">02</div>
-        <h3>ExLoRA &mdash; gate the adapter to the masked tokens</h3>
-        <p>A token-gated LoRA whose low-rank residual is applied <em>only</em> at the text positions marked by the
-          suppression mask. Unmasked tokens pass through the ordinary text stream, so suppression stays local to the
-          edit phrase the user switched off &mdash; no new demonstration pair, no per-subset prompt, no
-          query-specific optimisation.</p>
-      </article>
-      <article class="card">
-        <div class="cardnum">03</div>
-        <h3>CSV &mdash; remove the residual signal in the prompt</h3>
-        <p>The prompt embeddings still describe every edit, suppressed ones included. For each edit we estimate a
-          direction in text-encoder space from 64 contrastive positive/negative prompt pairs, cache it, and subtract
-          that component from the suppressed edit&rsquo;s token embeddings before denoising. Retained edits and the
-          analogy instructions are left untouched.</p>
-      </article>
+    <!-- The mask and ExLoRA, live on the dragon sample (SIA_SAMPLES s2). -->
+    <div class="hood" id="hood">
+      <div class="hood-head">
+        <div>
+          <div class="col-label">Under the hood</div>
+          <h3>A mask marks what to drop.</h3>
+          <p>Switch an edit off. Its prompt tokens get a 1 in the mask, and ExLoRA acts on those tokens only;
+            everything else is processed exactly as before.</p>
+        </div>
+        <div class="hood-sw" id="hoodSw" role="group" aria-label="Edits in the example"></div>
+      </div>
+      <div class="hood-body">
+        <div class="hood-imgs">
+          <div class="hood-row">
+            <figure><img id="hoodA" alt="A, the demonstration before the edits" loading="lazy"><figcaption><em>A</em></figcaption></figure>
+            <figure><img id="hoodAp" alt="A prime, the demonstration with all three edits" loading="lazy"><figcaption><em>A&prime;</em></figcaption></figure>
+            <figure><img id="hoodB" alt="B, the query" loading="lazy"><figcaption><em>B</em></figcaption></figure>
+          </div>
+          <figure class="hood-out"><img id="hoodOut" alt="" loading="lazy"><figcaption><em>B&prime;</em> &middot; <span id="hoodOutNote"></span></figcaption></figure>
+        </div>
+        <div class="hood-mech">
+          <div class="col-label">Prompt tokens and mask</div>
+          <div class="toks" id="hoodToks"></div>
+          <div class="col-label mt">Inside every attention layer <span class="xn">&times;&thinsp;<em>N</em></span></div>
+          <div class="flow"><svg class="flow-svg" id="hoodFlow" viewBox="0 0 640 234" role="img"
+               aria-label="Every token goes through the frozen weights W and AnaLoRA; the tokens of a dropped edit also go through ExLoRA, and its output is added back."></svg></div>
+          <div class="flow-key">
+            <span class="k-txt">other words</span><span class="k-keep">kept edit</span>
+            <span class="k-drop">dropped edit, mask 1</span><span class="k-img">image tokens</span>
+          </div>
+          <p class="hood-eq"><span class="math">h&#771;<sub>j</sub> = (W + M<sub>j</sub>&thinsp;&middot;&thinsp;<sup>&alpha;</sup>&frasl;<sub>r</sub>&thinsp;B<sub>s</sub>A<sub>s</sub>)&thinsp;h<sub>j</sub></span>
+            <span>with <span class="math">M<sub>j</sub></span> = 1 only on a dropped edit&rsquo;s tokens</span></p>
+        </div>
+      </div>
+      <ol class="stages" aria-label="One mask, two stages">
+        <li><b>Mask</b><span>on the dropped edit&rsquo;s tokens</span></li>
+        <li class="s-csv"><b>CSV</b><span>weakens it in the text</span><i>before denoising</i></li>
+        <li class="s-ex"><b>ExLoRA</b><span>blocks it in the transformer</span><i>during denoising</i></li>
+        <li class="s-res"><b>Result</b><span>only the selected edits</span></li>
+      </ol>
     </div>
 
-    <div class="statband">
+    <!-- How ExLoRA is trained: one real training sample (slide 27 of the deck). -->
+    <div class="trainp">
+      <div class="trainp-text">
+        <div class="col-label">How ExLoRA is trained</div>
+        <h3>Same input, a target without the dropped edit.</h3>
+        <p>ExLoRA sees the whole example and the full prompt, every edit named, with the mask on one edit. Its
+          target is the query with only the other edits applied, so it learns to read masked tokens as
+          &ldquo;do not transfer&rdquo;. AnaLoRA, trained first on full analogies, keeps carrying everything else.</p>
+        <div class="trainp-prompt">
+          <span class="pp full">full prompt, all edits named</span>
+          <span class="pp masked">gold color <b>mask 1</b></span>
+        </div>
+      </div>
+      <div class="trainp-pics">
+        <figure><img src="static/images/training/a.webp" alt="Training sample A: a black dragon in a mushroom forest" loading="lazy"><figcaption><em>A</em></figcaption></figure>
+        <figure><img src="static/images/training/ap.webp" alt="A prime: the dragon gold, wings open, lava on the ground" loading="lazy"><figcaption><em>A&prime;</em></figcaption></figure>
+        <figure><img src="static/images/training/b.webp" alt="B: a dragon on an icy peak under an aurora" loading="lazy"><figcaption><em>B</em></figcaption></figure>
+        <span class="trainp-arrow" aria-hidden="true"><svg width="34" height="14" viewBox="0 0 34 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h30M26 2l5 5-5 5"/></svg><span>target</span></span>
+        <figure class="target"><img src="static/images/training/target.webp" alt="Target: lava and open wings, but the dragon keeps its own colour" loading="lazy"><figcaption><em>B&prime;</em> &middot; no gold</figcaption></figure>
+      </div>
+    </div>
+
+    <!-- The Concept Suppression Vector: estimate the direction once, remove
+         it from the dropped token at inference. -->
+    <div class="csvp" id="csvp">
+      <div class="csvp-text">
+        <div class="col-label">Concept Suppression Vector</div>
+        <h3>A second safeguard, in the text.</h3>
+        <p>The prompt still names the dropped edit. For each edit, 64 contrastive prompt pairs, with and without it,
+          are encoded once; the difference of their means is the edit direction <span class="math">d</span>, cached
+          and reused. At inference the dropped edit&rsquo;s token loses its component along <span class="math">d</span>.</p>
+        <div class="csvp-prompts">
+          <div><span class="col-label">with the edit</span><span class="pp on">an open-wing bird</span><span class="pp on">an open-wing duck</span><span class="pp on">an open-wing swan</span></div>
+          <div><span class="col-label">without it</span><span class="pp off">a folded-wing bird</span><span class="pp off">a folded-wing duck</span><span class="pp off">a folded-wing swan</span></div>
+        </div>
+        <label class="csvp-lam">
+          <span>Suppression strength <span class="math">&lambda;</span> <output id="csvLv">1.0</output></span>
+          <input type="range" id="csvL" min="0" max="1" step="0.01" value="1" aria-label="Suppression strength lambda">
+        </label>
+        <p class="hood-eq"><span class="math">h &larr; h &minus; &lambda;&thinsp;(h<sup>&#8868;</sup>d)&thinsp;d</span></p>
+      </div>
+      <div class="csvp-plots">
+        <svg class="csvp-svg" viewBox="0 0 300 250" role="img" aria-labelledby="csvA">
+          <title id="csvA">Text-embedding space: the open-wing prompts and the folded-wing prompts form two clusters; the edit direction d points from the folded-wing mean to the open-wing mean.</title>
+          <text class="sv-h" x="12" y="20">1&ensp;Estimate the direction once</text>
+          <g id="csvDots"></g>
+          <line class="sv-d" id="csvD" x1="88" y1="190" x2="222" y2="82" marker-end="url(#svArrowD)"/>
+          <text class="sv-lab" id="csvDl" x="150" y="152">edit direction <tspan class="math">d</tspan></text>
+          <text class="sv-mlab" id="csvMon" x="236" y="99">mean</text>
+          <text class="sv-mlab end" id="csvMoff" x="74" y="180">mean</text>
+          <text class="sv-tag on" x="232" y="58">open wings</text>
+          <text class="sv-tag off" x="30" y="232">folded wings</text>
+          <defs>
+            <marker id="svArrowD" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="sv-ink"/></marker>
+            <marker id="svArrowR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="sv-drop"/></marker>
+            <marker id="svArrowB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="sv-acc"/></marker>
+            <marker id="svArrowG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="sv-mute"/></marker>
+          </defs>
+        </svg>
+        <svg class="csvp-svg" viewBox="0 0 300 250" role="img" aria-labelledby="csvB">
+          <title id="csvB">At inference: the token of the dropped edit, its component along d, and the token after that component is removed.</title>
+          <text class="sv-h" x="12" y="20">2&ensp;Remove it from the dropped token</text>
+          <line class="sv-axis" x1="50" y1="243" x2="266" y2="99"/>
+          <text class="sv-lab" x="270" y="98"><tspan>d</tspan></text>
+          <line class="sv-h0" id="csvH0" x1="60" y1="205" x2="0" y2="0" marker-end="url(#svArrowG)"/>
+          <line class="sv-proj" id="csvProj" x1="0" y1="0" x2="0" y2="0"/>
+          <line class="sv-comp" id="csvComp" x1="60" y1="205" x2="0" y2="0" marker-end="url(#svArrowR)"/>
+          <line class="sv-h1" id="csvH1" x1="60" y1="205" x2="0" y2="0" marker-end="url(#svArrowB)"/>
+          <circle class="sv-o" cx="100" cy="210" r="3.5"/>
+          <text class="sv-vl h0" id="csvTh0" x="0" y="0">h</text>
+          <text class="sv-vl h1" id="csvTh1" x="0" y="0">h&prime;</text>
+        </svg>
+        <div class="csvp-legend">
+          <span class="l-h0">token &ldquo;open wings&rdquo; <span class="math">h</span></span>
+          <span class="l-comp">removed: <span class="math">&lambda;(h<sup>&#8868;</sup>d)d</span></span>
+          <span class="l-h1">after CSV</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- The training data: how the multi-edit recipes are made, and what one
+         training sample looks like. -->
+    <div class="data">
+      <div class="col-label">Training data</div>
+      <h3>Every subset of the edits, for two subjects.</h3>
+      <div class="data-figs">
+        <figure class="fig">
+          <button class="fig-shell vec" type="button" data-zoom="static/figures/data-generation.svg"
+                  data-caption="How the multi-edit recipes are generated and filtered." aria-label="Enlarge the data generation figure">
+            <span class="vec-stage">
+              <img src="static/figures/data-generation-base-dark.svg" data-dark="static/figures/data-generation-base-dark.svg" data-light="static/figures/data-generation-base.svg"
+                   data-still-dark="static/figures/data-generation-dark.svg" data-still-light="static/figures/data-generation.svg" width="2022" height="876" loading="lazy"
+                   alt="Data generation: two-edit data from RelationAdapter plus a style source, synthetic three- and four-edit recipes built with FLUX.2-Klein, and Qwen-VL quality filtering that keeps valid samples and rejects low-quality or incorrect ones.">
+              <img class="vec-live" src="static/figures/data-generation-live-dark.svg" data-dark="static/figures/data-generation-live-dark.svg"
+                   data-light="static/figures/data-generation-live.svg" width="2022" height="876" loading="lazy" alt="">
+            </span>
+            <span class="zoomhint"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"/></svg> Enlarge</span>
+          </button>
+          <figcaption><b>Building the recipes.</b> Two-edit data from RelationAdapter plus a style source, then
+            synthetic three- and four-edit recipes rendered one edit at a time. Qwen-VL keeps a sample only if the
+            desired edits are present and the excluded ones absent.</figcaption>
+        </figure>
+        <figure class="fig">
+          <button class="fig-shell vec" type="button" data-zoom="static/figures/data-format.svg"
+                  data-caption="One selective image analogy training sample." aria-label="Enlarge the data format figure">
+            <span class="vec-stage">
+              <img src="static/figures/data-format-base-dark.svg" data-dark="static/figures/data-format-base-dark.svg" data-light="static/figures/data-format-base.svg"
+                   data-still-dark="static/figures/data-format-dark.svg" data-still-light="static/figures/data-format.svg" width="2482" height="862" loading="lazy"
+                   alt="Data format: two subjects are sampled from the same recipe. Subject a gives A and A prime with every edit; subject b gives B, the target with the retained edits R, and B prime with every edit.">
+              <img class="vec-live" src="static/figures/data-format-live-dark.svg" data-dark="static/figures/data-format-live-dark.svg"
+                   data-light="static/figures/data-format-live.svg" width="2482" height="862" loading="lazy" alt="">
+            </span>
+            <span class="zoomhint"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"/></svg> Enlarge</span>
+          </button>
+          <figcaption><b>One training sample.</b> Two subjects share a recipe: subject <em>a</em> gives
+            <em>A</em> and <em>A&prime;</em> with every edit, subject <em>b</em> gives <em>B</em> and a target with
+            only the retained edits <em>R</em>. The rest, <em>S</em>&nbsp;=&nbsp;<em>&#8496;</em>&nbsp;&minus;&nbsp;<em>R</em>,
+            are suppressed.</figcaption>
+        </figure>
+      </div>
+
+      <div class="statband">
       <div class="stat"><b>1,606</b><span>training samples</span></div>
       <div class="stat"><b>239</b><span>edit settings</span></div>
-      <div class="stat"><b>239</b><span>test cases</span></div>
       <div class="stat"><b>2&ndash;4</b><span>simultaneous edits</span></div>
-      <div class="stat"><b>rank 16</b><span>both adapters</span></div>
-      <div class="stat"><b>30</b><span>denoising steps</span></div>
     </div>
     <p class="statnote">Our Multi-Edit Analogy Dataset spans creature and non-creature subjects and covers object
       additions, appearance changes, expression changes, pose changes, background replacements and style transfer.
       Every sample is filtered with a vision&ndash;language model to verify that the desired edits are present and the
       excluded ones are absent.</p>
+    </div>
   </div>
 </section>
 
@@ -340,7 +587,46 @@
       image scores well on preservation and badly on everything else. SIA leads on retained accuracy, recall and both
       CLIP directional scores.</p>
 
+    <!-- headline numbers, taken from Table 1 (Qwen3-VL-32B and CLIP columns);
+         VisualCloze is the strongest baseline on all three -->
+    <div class="headline">
+      <div class="hstat">
+        <b class="big">89<small>%</small></b>
+        <span class="what">of kept edits applied</span>
+        <span class="sub">Retained-edit recall &middot; Qwen3-VL-32B</span>
+        <div class="bars">
+          <div class="bar"><span class="who">VisualCloze, best baseline</span><span class="val">0.856</span>
+            <span class="track"><i style="--v:85.6%"></i></span></div>
+          <div class="bar sia"><span class="who">SIA</span><span class="val">0.892</span>
+            <span class="track"><i style="--v:89.2%"></i></span></div>
+        </div>
+      </div>
+      <div class="hstat">
+        <b class="big">8.0<small>/10</small></b>
+        <span class="what">retained-edit accuracy</span>
+        <span class="sub">How well the edits you keep are applied &middot; Qwen3-VL-32B</span>
+        <div class="bars">
+          <div class="bar"><span class="who">VisualCloze, best baseline</span><span class="val">7.24</span>
+            <span class="track"><i style="--v:72.4%"></i></span></div>
+          <div class="bar sia"><span class="who">SIA</span><span class="val">8.01</span>
+            <span class="track"><i style="--v:80.1%"></i></span></div>
+        </div>
+      </div>
+      <div class="hstat">
+        <b class="big">0.54</b>
+        <span class="what">CLIP directional similarity</span>
+        <span class="sub">CLIP-Dir Image, the image&ndash;image directional metric</span>
+        <div class="bars">
+          <div class="bar"><span class="who">VisualCloze, best baseline</span><span class="val">0.464</span>
+            <span class="track"><i style="--v:46.4%"></i></span></div>
+          <div class="bar sia"><span class="who">SIA</span><span class="val">0.543</span>
+            <span class="track"><i style="--v:54.3%"></i></span></div>
+        </div>
+      </div>
+    </div>
+
     <figure class="tablewrap">
+      <p class="swipehint" aria-hidden="true">Swipe the table sideways for every score &rarr;</p>
       <div class="tscroll">
         <table class="tbl">
           <caption class="visually-hidden">Quantitative comparison with visual analogy baselines</caption>
@@ -391,7 +677,7 @@
         <button id="copyBib" type="button">Copy</button>
 <pre id="bibtex">@inproceedings{alimohammadi2026sia,
   title     = {SIA: Selective Image Analogy},
-  author    = {Alimohammadi, Amirhossein and Izadpanah, Kian and
+  author    = {Alimohammadi, Amir and Izadpanah, Kian and
                Kariminia, Bardiya and Chrysanthou, Yiorgos and
                Mahdavi-Amiri, Ali},
   booktitle = {SIGGRAPH Asia 2026 Conference Papers},
@@ -419,6 +705,8 @@
   </button>
   <figure class="lb-fig">
     <img id="lbImg" alt="">
+    <!-- a living figure, enlarged: its still base and its moving layer -->
+    <div class="lb-stack" id="lbStack" hidden><span class="lb-in"><img id="lbBase" alt=""><img id="lbLive" alt=""></span></div>
     <figcaption id="lbCap"></figcaption>
   </figure>
 </div>

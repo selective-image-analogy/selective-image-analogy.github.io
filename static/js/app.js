@@ -15,12 +15,6 @@
   var SAMPLES = window.SIA_SAMPLES || [];
   var EXAMPLES = window.SIA_EXAMPLES || [];
 
-  var TYPE_LABEL = {
-    object: "Object", appearance: "Appearance", expression: "Expression",
-    pose: "Pose", style: "Style", background: "Background"
-  };
-  var SUBJECT_LABEL = { people: "People", creatures: "Creatures", objects: "Objects" };
-
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
   function esc(s) {
@@ -30,6 +24,29 @@
   }
   /* a bare number works for `aspect-ratio` and for calc(height * ar) */
   function ar(o) { return (o.w / o.h).toFixed(4); }
+  /* "both" for two edits, "all 3" for more */
+  function every(n) { return n === 2 ? "both" : "all " + n; }
+  /* a touch screen, with no mouse to hover or keyboard to press */
+  var touch = !!(window.matchMedia && !matchMedia("(hover: hover) and (pointer: fine)").matches);
+  /* Downloads that can wait (full-quality copies, images for clicks that may
+     never come) start once the page itself has loaded, so on a slow
+     connection they don't hold up what is on screen. */
+  function whenLoaded(fn) {
+    if (document.readyState === "complete") setTimeout(fn, 400);
+    else window.addEventListener("load", function () { setTimeout(fn, 400); });
+  }
+  /* download and decode an image off-screen, so it can be shown at once;
+     `priority` is a fetchPriority hint ("high" / "low") */
+  function fetchImage(src, priority, done, fail) {
+    var img = new Image();
+    if (done) img.onload = function () {
+      (img.decode ? img.decode() : Promise.resolve()).then(done, done);
+    };
+    if (fail) img.onerror = fail;
+    if (priority && "fetchPriority" in img) img.fetchPriority = priority;
+    img.src = src;
+    return img;
+  }
 
   /* =========================================================== theme */
   (function theme() {
@@ -37,16 +54,26 @@
     var root = document.documentElement;
     var stored = null;
     try { stored = localStorage.getItem(KEY); } catch (e) { /* private mode */ }
-    /* Light is the default; dark only when the reader asks for it. */
-    root.setAttribute("data-theme", stored === "dark" ? "dark" : "light");
+    var meta = document.querySelector('meta[name="theme-color"]');
+    function apply(t) {
+      root.setAttribute("data-theme", t);
+      if (meta) meta.setAttribute("content", t === "dark" ? "#121826" : "#FFFFFF");
+      /* figures drawn for each theme carry both files; a living figure's
+         base also names its still version, for reduced motion */
+      var still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      $$("img[data-dark]").forEach(function (im) {
+        var k = (still && im.hasAttribute("data-still-" + t) ? "data-still-" : "data-") + t;
+        im.setAttribute("src", im.getAttribute(k));
+      });
+    }
+    /* Dark is the default; light only when the reader asks for it. */
+    apply(stored === "light" ? "light" : "dark");
 
     var btn = $("#themeBtn");
     if (!btn) return;
     btn.addEventListener("click", function () {
       var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      root.setAttribute("data-theme", next);
-      var meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute("content", next === "dark" ? "#141513" : "#F8F7F4");
+      apply(next);
       try { localStorage.setItem(KEY, next); } catch (e) { /* ignore */ }
     });
   }());
@@ -59,6 +86,7 @@
     var ids = links.map(function (a) { return a.getAttribute("href").slice(1); });
     var targets = ids.map(function (id) { return document.getElementById(id); });
 
+    var shown = -1;
     function onScroll() {
       if (bar) {
         var h = document.documentElement.scrollHeight - window.innerHeight;
@@ -71,10 +99,175 @@
         if (el && el.offsetTop <= mark) best = i;
       });
       links.forEach(function (a, i) { a.classList.toggle("on", i === best); });
+      /* on a phone the links scroll sideways: bring the current one into
+         view, or back to the start above the first section */
+      if (best !== shown) {
+        shown = best;
+        var a = links[best], ul = $(".navlinks");
+        if (ul && ul.scrollWidth > ul.clientWidth) {
+          var left = 0;
+          if (a) {
+            var ar = a.getBoundingClientRect(), ur = ul.getBoundingClientRect();
+            left = ul.scrollLeft + ar.left - ur.left - (ul.clientWidth - ar.width) / 2;
+          }
+          ul.scrollTo({ left: left, behavior: "smooth" });
+        }
+      }
     }
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     onScroll();
+  }());
+
+  /* ====================================================== result wall */
+  /* The masthead wall comes in two weights. The light copies (~40 KB still,
+     ~100 KB moving) arrive within a second or two even on a weak connection,
+     so every visitor gets a wall, and a drifting one, without waiting. The
+     full-quality image (~0.6 MB still, ~0.8 MB moving) then downloads in the
+     background and takes over once it is ready, however long that takes.
+     Reduced motion keeps the wall still (light, then full); Data Saver keeps
+     the light still wall and fetches nothing more. */
+  (function wall() {
+    var host = $(".wall");
+    var lite = host && $("img", host);
+    if (!host || !lite) return;
+
+    var V = "?v=4";   /* bump when build_wall.py reruns (also in index.html and style.css) */
+    var STILL = "static/figures/wall.webp" + V;
+    var MOTION = "static/figures/wall-motion.webp" + V;
+    var MOTION_LITE = "static/figures/wall-motion-lite.webp" + V;
+    var COLS = 9;
+
+    /* ?wall=move / ?wall=still force either; ?wall=lite stops at the light
+       copies, to preview what a slow connection sees first */
+    var force = (/[?&]wall=(move|still|lite)\b/.exec(location.search) || [])[1];
+    var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    var saveData = !!(c && c.saveData);
+    var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var move = force === "move" || (force !== "still" && !reduce && !saveData);
+    var full = force !== "lite" && !saveData;
+
+    /* The full-quality wall is fetched once the page has loaded, and only
+       while the wall is on screen: a visitor who scrolls on before it has
+       arrived gets a weak connection to themselves for what they are now
+       looking at, and the download starts again (the browser can usually
+       pick up where it stopped) when they come back. */
+    var shown = true, loaded = false, pending = null;
+    function pump() { if (pending) pending(); }
+    function upgrade(src, done) {
+      var img = null;
+      pending = function () {
+        if (loaded && shown && !img) {
+          img = fetchImage(src, "low", function () { pending = null; done(); });
+        } else if (!shown && img && !img.complete) {
+          img.onload = null;
+          img.src = "";                       /* stops the download */
+          img = null;
+        }
+      };
+      pump();
+    }
+    whenLoaded(function () { loaded = true; pump(); });
+    /* the masthead's last stretch fades into the page, so a sliver of it
+       counts as gone; there is no point animating what nobody can see */
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) {
+        shown = entries[entries.length - 1].intersectionRatio >= 0.15;   /* the latest */
+        host.classList.toggle("paused", !shown);
+        pump();
+      }, { threshold: [0, 0.15] }).observe(host);
+    }
+
+    /* two frames, so a layer is painted at opacity 0 before it fades in */
+    function fadeIn(cls) {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { host.classList.add(cls); });
+      });
+    }
+
+    function sharpenStill() {
+      upgrade(STILL, function () {
+        var img = lite.cloneNode(false);
+        img.removeAttribute("fetchpriority");
+        img.className = "wall-full";
+        img.src = STILL;
+        host.insertBefore(img, lite.nextSibling);
+        fadeIn("sharp");
+        /* once it covers the light copy, drop that */
+        setTimeout(function () { lite.hidden = true; }, 1600);
+      });
+    }
+
+    function startMotion() {
+      var html = "";
+      for (var i = 0; i < COLS; i++) {
+        /* one pace for all, alternately up and down: columns moving the same
+           way stay in step, which build_wall.py relies on to keep a result
+           away from its look-alikes two columns over */
+        html += '<div class="col"><div class="strip" style="--i:' + i + ';--dur:110s;--delay:0s"></div></div>';
+      }
+      var layer = document.createElement("div");
+      layer.className = "wall-motion";
+      layer.innerHTML = html;
+      host.appendChild(layer);
+      fadeIn("moving");
+
+      /* The full-quality strip goes over the light one without a break in the
+         drift (only the strips' image changes, not their position), and the
+         light one stays underneath until the full one has surely been drawn. */
+      if (full) upgrade(MOTION, function () {
+        layer.classList.add("sharp");
+        setTimeout(function () { layer.classList.add("settled"); }, 3000);
+      });
+    }
+
+    if (!move) {
+      if (full) sharpenStill();
+      return;
+    }
+    /* the light still wall first, then the light moving one, ahead of the
+       rest of the page's images; if that fails, the wall stays still and
+       sharpens instead */
+    function next() {
+      fetchImage(MOTION_LITE, "high", startMotion, function () { if (full) sharpenStill(); });
+    }
+    if (lite.complete) next();
+    else {
+      lite.addEventListener("load", next);
+      lite.addEventListener("error", next);
+    }
+  }());
+
+  /* ============================================================ video */
+  /* A poster with a play button stands in for the YouTube player, which is
+     created only on click, from the privacy-enhanced domain. Everything
+     follows the ID in data-yt, so swapping the video is a one-line edit. */
+  (function video() {
+    var box = $(".yt");
+    if (!box) return;
+    var id = box.getAttribute("data-yt");
+    var poster = $(".yt-poster", box);
+
+    poster.addEventListener("error", function () {
+      /* not every upload has a full-resolution thumbnail */
+      if (poster.src.indexOf("maxresdefault") > 0) {
+        poster.src = "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg";
+      }
+    });
+    poster.src = "https://i.ytimg.com/vi/" + id + "/maxresdefault.jpg";
+    $$("a.yt-open").forEach(function (a) { a.href = "https://www.youtube.com/watch?v=" + id; });
+
+    $(".yt-play", box).addEventListener("click", function () {
+      var f = document.createElement("iframe");
+      f.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0&playsinline=1";
+      f.title = box.getAttribute("data-title") || "Video";
+      f.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+      f.referrerPolicy = "strict-origin-when-cross-origin";
+      f.allowFullscreen = true;
+      box.innerHTML = "";
+      box.appendChild(f);
+      f.focus();
+    });
   }());
 
   /* ========================================================= lightbox */
@@ -82,23 +275,62 @@
     var box = $("#lightbox");
     var img = $("#lbImg");
     var cap = $("#lbCap");
+    var stack = $("#lbStack"), base = $("#lbBase"), live = $("#lbLive");
     var last = null;
     if (!box) return { open: function () {} };
 
     function close() {
+      want = null;
       box.hidden = true;
       document.body.style.overflow = "";
       if (last && last.focus) last.focus();
       last = null;
     }
-    function open(src, caption, opener) {
-      if (!src) return;
-      last = opener || null;
+    /* An image not downloaded yet (a click right after a switch, on a slow
+       connection) opens as its light copy, the frame's background, at the
+       size the full one will have (every photo here is 512 px tall), and
+       sharpens once the full one is in. */
+    var want = null;
+    function soft(src, opener) {
+      want = src;
+      img.style.width = img.style.height = img.style.background = "";
       img.src = src;
+      var lite = opener && /url\(["']?([^"')]+)/.exec(opener.style.backgroundImage || "");
+      var r = opener && parseFloat(opener.style.getPropertyValue("--ar"));
+      if (!lite || !r || (img.complete && img.naturalWidth)) return;
+      var h = Math.min(512, window.innerHeight - 150), w = h * r;
+      var room = window.innerWidth - 56;          /* (the box is still hidden) */
+      if (w > room) { w = room; h = w / r; }
+      img.src = lite[1];
+      img.style.width = w + "px";
+      img.style.height = h + "px";
+      img.style.background = "rgba(255,255,255,.07)";   /* (not white, until the light copy is in) */
+      fetchImage(src, "high", function () {
+        if (want !== src || box.hidden) return;
+        img.src = src;
+        img.style.width = img.style.height = img.style.background = "";
+      });
+    }
+
+    /* layers: [base, moving layer or null, aspect ratio] for a living figure,
+       shown as it is on the page (its theme, no white, moving) */
+    function open(src, caption, opener, layers) {
+      if (!src && !layers) return;
+      last = opener || null;
+      img.hidden = !!layers;
+      stack.hidden = !layers;
+      if (layers) {
+        base.src = layers[0];
+        live.hidden = !layers[1];
+        if (layers[1]) live.src = layers[1];
+        stack.style.setProperty("--ar", layers[2]);
+      } else {
+        soft(src, opener);
+      }
       cap.innerHTML = caption || "";
       cap.hidden = !caption;
       /* read the caption back as text so entities land decoded in the alt */
-      img.alt = cap.textContent;
+      img.alt = base.alt = cap.textContent;
       box.hidden = false;
       document.body.style.overflow = "hidden";
       $("#lbClose").focus();
@@ -108,13 +340,23 @@
       if (e.target === box || e.target.classList.contains("lb-fig")) close();
     });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && !box.hidden) close();
+      if (e.key === "Escape" && !box.hidden) { close(); e.preventDefault(); }
     });
     return { open: open };
   }());
 
   /* Any element carrying data-zoom opens the lightbox. An explicit value wins,
-     otherwise the element's own <img> is used. */
+     otherwise the element's own <img> is used. A living figure (the pipeline
+     figure, the training-data figures) opens as its two layers instead, in
+     the files the page is showing now. */
+  function living(t) {
+    var stage = t.querySelector(".vec-stage") || t.closest(".tour-stage");
+    if (!stage) return null;
+    var b = $("img", stage), l = $(".vec-live, .tour-live", stage);
+    var moving = l && getComputedStyle(l).display !== "none";
+    return [b.currentSrc || b.getAttribute("src"), moving ? (l.currentSrc || l.getAttribute("src")) : null,
+            b.getAttribute("width") / b.getAttribute("height")];
+  }
   document.addEventListener("click", function (e) {
     var t = e.target.closest ? e.target.closest("[data-zoom]") : null;
     if (!t) return;
@@ -123,8 +365,150 @@
       var im = t.querySelector("img");
       src = im && im.getAttribute("src");
     }
-    lightbox.open(src, t.getAttribute("data-caption") || "", t);
+    lightbox.open(src, t.getAttribute("data-caption") || "", t, living(t));
   });
+
+  /* =========================================================== teaser */
+  /* The teaser builds itself as it comes into view: the figure without its
+     moving parts (data-base-*), and over it a layer whose parts arrive in
+     turn (from tools/build_arch.py), which plays once and rests on the
+     finished figure. An SVG in an <img> starts its animation when it loads,
+     so every run shows a fresh copy of that layer (a blob URL), and the
+     layer opened as ...#done shows the finished figure at once.
+     The layer comes in two weights: data-play-* (~170 KB sent) and a light
+     copy with rougher photos, data-lite-* (~80 KB). A slow connection plays
+     the light one first; once its build has ended and the full one has
+     arrived, the full one takes over, finished, without a rerun. Under
+     reduced motion, without script, or if neither loads, it is the still
+     figure (data-still-*). */
+  (function teaser() {
+    var fig = $(".fig-teaser");
+    var base = fig && $(".vec-stage img", fig), live = fig && $(".vec-live", fig);
+    if (!base || !live) return;
+    var again = $(".fig-replay", fig);
+    var root = document.documentElement;
+    var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var BUILD_MS = 8300;                        /* the build, its last ring included */
+    var layers = {}, bases = {}, got = {}, url = null, played = false, wanted = false, runs = 0;
+
+    function theme() { return root.getAttribute("data-theme") === "light" ? "light" : "dark"; }
+    function still() {
+      live.hidden = true;
+      base.src = base.getAttribute("data-still-" + theme());
+    }
+    if (reduce || !window.fetch || !window.URL || !("IntersectionObserver" in window)) {
+      still();
+      new MutationObserver(still).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+      return;
+    }
+    /* the stage, until the build plays: just the parts that never move */
+    base.src = base.getAttribute("data-base-" + theme());
+
+    function baseReady(t) {
+      return bases[t] || (bases[t] = new Promise(function (ok, no) {
+        var i = new Image();
+        i.onload = ok;
+        i.onerror = no;
+        i.src = base.getAttribute("data-base-" + t);
+      }));
+    }
+    /* a moving layer ("lite" or "full") as a blob, with the base loaded */
+    function layer(t, kind) {
+      var k = t + kind;
+      if (!layers[k]) {
+        layers[k] = Promise.all([
+          fetch(live.getAttribute((kind === "lite" ? "data-lite-" : "data-play-") + t)).then(function (r) {
+            if (!r.ok) throw new Error("teaser: " + r.status);
+            return r.blob();
+          }),
+          baseReady(t)
+        ]).then(function (g) { got[k] = true; return g[0]; });
+        layers[k].catch(function () { delete layers[k]; });
+      }
+      return layers[k];
+    }
+    /* put a layer on the stage once it can be drawn at once */
+    function show(t, blob, frag, then) {
+      var next = URL.createObjectURL(blob);
+      var img = new Image();
+      img.onload = function () {
+        fig.classList.remove("waiting");
+        if (t !== theme()) { URL.revokeObjectURL(next); return; }   /* the theme changed meanwhile */
+        base.src = base.getAttribute("data-base-" + t);
+        live.src = next + frag;
+        live.hidden = false;
+        if (url) URL.revokeObjectURL(url);
+        url = next;
+        played = true;
+        if (again) again.hidden = false;
+        if (then) then();
+      };
+      img.src = next + frag;
+    }
+    /* the build (frag "") or the finished figure (frag "#done"): the full
+       layer if it is here, otherwise the light one now and the full one,
+       finished, once it arrives and (for a build) the build has ended */
+    function run(frag) {
+      var t = theme(), id = ++runs;
+      var kind = got[t + "full"] ? "full" : "lite";
+      wanted = true;
+      fig.classList.add("waiting");
+      if (kind === "lite") layer(t, "full").catch(function () {});
+      function start(blob) {
+        if (id !== runs) return;
+        show(t, blob, frag, function () {
+          if (kind === "full") return;
+          var until = Date.now() + (frag ? 0 : BUILD_MS);
+          layer(t, "full").then(function (full) {
+            setTimeout(function () {
+              if (id === runs && t === theme()) show(t, full, "#done");
+            }, Math.max(0, until - Date.now()));
+          }, function () { /* keep the light one */ });
+        });
+      }
+      layer(t, kind).then(function (blob) {
+        if (kind === "full") return start(blob);
+        /* on a quick connection the full layer is right behind the light
+           one: a moment's grace lets it play instead */
+        Promise.race([layer(t, "full"), new Promise(function (ok) { setTimeout(ok, 300); })])
+          .then(function (full) {
+            if (full) kind = "full";
+            start(full || blob);
+          }, function () { start(blob); });
+      }, function () {
+        if (kind === "full") { fig.classList.remove("waiting"); still(); return; }
+        kind = "full";                                          /* no light copy: the full one */
+        layer(t, "full").then(start, function () { fig.classList.remove("waiting"); still(); });
+      });
+    }
+
+    /* fetch ahead once the page has loaded and the figure is near (the light
+       layer first); play once a third of it is on screen */
+    var near = new IntersectionObserver(function (es) {
+      if (!es[es.length - 1].isIntersecting) return;      /* the latest, if several came at once */
+      near.disconnect();
+      whenLoaded(function () {
+        var t = theme();
+        layer(t, "lite").then(function () { return layer(t, "full"); }).catch(function () {});
+      });
+    }, { rootMargin: "1500px 0px" });
+    near.observe(fig);
+    var seen = new IntersectionObserver(function (es) {
+      if (es[es.length - 1].intersectionRatio < 0.35) return;
+      seen.disconnect();
+      run("");
+    }, { threshold: [0, 0.35] });
+    seen.observe(fig);
+    if (again) again.addEventListener("click", function () { run(""); });
+
+    /* after a theme switch the finished figure is shown in the new theme
+       (no surprise rerun); Replay builds it again in that theme */
+    new MutationObserver(function () {
+      if (played) run("#done");
+      else if (wanted) run("");
+      else base.src = base.getAttribute("data-base-" + theme());
+    }).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  }());
 
   /* ====================================================== switchboard */
   var board = (function () {
@@ -132,33 +516,124 @@
 
     var cur = SAMPLES[0];
     var mask = [];
-    var warm = {};
     var swapToken = 0;
+    var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    var saveData = !!(c && c.saveData);
 
     function maskStr(m) { return m.join(""); }
     /* Nothing kept means nothing is transferred, so B itself is the answer --
        reachable even though no subset was rendered for it. */
     function isNone(m) { return m.indexOf("1") < 0; }
     function has(m) { return isNone(m) || cur.available.indexOf(m) >= 0; }
-    function outSrc(m) { return isNone(m) ? cur.dir + "/b.webp"
-                                          : cur.dir + "/subsets/" + m + ".webp"; }
-    /* the stepper walks the rendered subsets and then the all-off state */
-    function cycle() { return cur.available.concat([new Array(cur.edits.length + 1).join("0")]); }
-
-    /* Prefer full transfer; otherwise the rendered combination that keeps the most. */
-    function defaultMask(s) {
-      var all = new Array(s.edits.length).fill("1").join("");
-      var pick = s.available.indexOf(all) >= 0 ? all : s.available[0];
-      return pick.split("").map(Number);
+    function outName(m) { return isNone(m) ? "b.webp" : "subsets/" + m + ".webp"; }
+    function outSrc(m) { return cur.dir + "/" + outName(m); }
+    /* every image here has a light copy (~3 KB) under lite/ */
+    function liteSrc(m) { return cur.dir + "/lite/" + outName(m); }
+    /* The stepper builds up from nothing: the all-off state, then single
+       edits, pairs, ... up to full transfer, earlier edits first. */
+    function cycle() {
+      var kept = function (m) { return m.split("1").length - 1; };
+      return [new Array(cur.edits.length + 1).join("0")].concat(
+        cur.available.slice().sort(function (a, b) {
+          return kept(a) - kept(b) || (a < b ? 1 : a > b ? -1 : 0);
+        }));
     }
 
-    function preload(s) {
-      if (warm[s.id]) return;
-      warm[s.id] = true;
-      s.available.forEach(function (m) {
-        var i = new Image();
-        i.decoding = "async";
-        i.src = s.dir + "/subsets/" + m + ".webp";
+    /* A tab opens where its sample says (`start`, from build_images.py):
+       mostly every edit on, so the result opens as the full transfer and each
+       switch visibly takes its edit away. */
+    function defaultMask(s) {
+      return s.start ? s.start.split("").map(Number) : s.edits.map(function () { return 1; });
+    }
+
+    /* Everything here comes light first, then full, so that on a weak
+       connection the visitor soon sees every image, roughly, and then
+       sharply. In order: the light copies of A, A', B and the result; then
+       their full images, beside the light copies of the tab's other
+       combinations (a few KB each, so a switch always has something to show
+       at once) and, at first, of what each other tab opens on; last, once
+       A, A' and B are in, the tab's other combinations in full, at low
+       priority. Data Saver stops before that
+       last step, so a full image then loads when it is asked for. Full
+       downloads still on their way for a tab the visitor has left stop, so
+       they don't hold up the one in front of them. */
+    var fetching = [];                    /* [sample, image] */
+    var litesIn = Promise.resolve();      /* A, A' and B's light copies are in */
+    function preload(s, later) {
+      fetching = fetching.filter(function (f) {
+        if (f[1].complete) return false;
+        if (f[0] === s) return true;
+        f[1].src = "";
+        return false;
+      });
+      litesIn.then(function () {
+        if (cur === s) s.available.forEach(function (m) {
+          fetchImage(s.dir + "/lite/subsets/" + m + ".webp", "high");
+        });
+      });
+      if (!saveData) shown(function () {
+        (later || function (f) { f(); })(function () {
+          if (cur !== s) return;
+          s.available.forEach(function (m) {
+            var src = s.dir + "/subsets/" + m + ".webp";
+            if (!fetching.some(function (f) { return f[1].src.indexOf(src) >= 0; })) {
+              fetching.push([s, fetchImage(src, "low")]);
+            }
+          });
+        });
+      });
+    }
+    /* run `fn` once A, A' and B are in, in full (or have failed) */
+    function shown(fn) {
+      Promise.all(["#imgA", "#imgAp", "#imgB"].map(function (id) {
+        var img = $(id);
+        return new Promise(function (done) {
+          function check() {
+            if (img.getAttribute("src") !== img.dataset.want || !img.complete) return;
+            img.removeEventListener("load", check);
+            img.removeEventListener("error", check);
+            done();
+          }
+          img.addEventListener("load", check);
+          img.addEventListener("error", check);
+          check();
+        });
+      })).then(fn);
+    }
+    /* the light copies of what each other tab opens on (~70 KB in all) */
+    function preloadTabs() {
+      SAMPLES.forEach(function (s) {
+        if (s === cur) return;
+        ["a", "ap", "b"].forEach(function (n) { fetchImage(s.dir + "/lite/" + n + ".webp", "low"); });
+        if (s.start.indexOf("1") >= 0) fetchImage(s.dir + "/lite/subsets/" + s.start + ".webp", "low");
+      });
+    }
+
+    /* Show `src` in `img`'s frame: its light copy first (the frame's
+       background), and only once that is in, the full image, which fades
+       in over it when it arrives. Resolves when the light copy is in. */
+    function paint(img, src, lite) {
+      return new Promise(function (done) {
+        if (img.dataset.want === src) return done();
+        img.dataset.want = src;
+        img.parentNode.style.backgroundImage = "url('" + lite + "')";
+        img.classList.add("ld");
+        img.classList.remove("in");
+        if (!img.complete) img.removeAttribute("src");   /* stops a download now unwanted */
+        var go = function () {
+          done();
+          if (img.dataset.want !== src) return;
+          img.onload = function () { if (img.getAttribute("src") === src) img.classList.add("in"); };
+          img.src = src;
+          /* one already in hand is simply shown, without the fade */
+          if (img.complete && img.naturalWidth) {
+            img.style.transition = "none";
+            img.classList.add("in");
+            void img.offsetWidth;
+            img.style.transition = "";
+          }
+        };
+        fetchImage(lite, "high", go, go);
       });
     }
 
@@ -170,28 +645,50 @@
           '<img src="' + s.dir + '/thumb.webp" alt="" aria-hidden="true">' +
           esc(s.label) + '<span class="n">' + s.edits.length + ' edits</span></button>';
       }).join("");
+      /* on a phone the tabs slide sideways: keep the chosen one in view */
+      var on = $('[aria-selected="true"]', el);
+      if (on && el.scrollWidth > el.clientWidth) {
+        var br = on.getBoundingClientRect(), sr = el.getBoundingClientRect();
+        el.scrollTo({ left: el.scrollLeft + br.left - sr.left - (el.clientWidth - br.width) / 2,
+                      behavior: el.dataset.built ? "smooth" : "auto" });
+      }
+      el.dataset.built = "1";
+      tighten();
       $$("button", el).forEach(function (b) {
         b.addEventListener("click", function () {
           var next = SAMPLES.filter(function (s) { return s.id === b.dataset.id; })[0];
           if (!next || next.id === cur.id) return;
           cur = next;
           mask = defaultMask(cur);
-          preload(cur);
+          moved = -1;
           buildStrip();
           buildChips();
           renderInputs();
           render();
+          preload(cur);
         });
       });
     }
 
+    /* The tabs keep to one row where they can: when they would wrap, their
+       "n edits" counts give way (the switches' heading says it anyway). */
+    function tighten() {
+      var el = $("#strip"), bs = $$("button", el);
+      el.classList.remove("tight");
+      if (bs.length && bs[bs.length - 1].offsetTop > bs[0].offsetTop) el.classList.add("tight");
+    }
+
     function buildChips() {
       $("#boardTitle").textContent = cur.edits.length + " demonstrated edits";
+      $("#board").style.setProperty("--n", cur.edits.length);
       $("#chips").innerHTML = cur.edits.map(function (e, i) {
         return '<button class="chip" type="button" data-i="' + i + '">' +
-          '<span class="dot"><svg width="9" height="7" viewBox="0 0 9 7" fill="none" ' +
-          'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
-          '<path d="M1 3.6L3.4 6 8 1"/></svg></span>' +
+          '<span class="dot"><svg class="k" width="10" height="8" viewBox="0 0 9 7" fill="none" ' +
+          'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M1 3.6L3.4 6 8 1"/></svg>' +
+          '<svg class="x" width="8" height="8" viewBox="0 0 8 8" fill="none" ' +
+          'stroke="currentColor" stroke-width="1.8" stroke-linecap="round">' +
+          '<path d="M1.2 1.2l5.6 5.6M6.8 1.2L1.2 6.8"/></svg></span>' +
           '<span class="name">' + esc(e.label) + '</span>' +
           '<span class="kbd">' + (i + 1) + '</span></button>';
       }).join("");
@@ -200,33 +697,54 @@
       });
     }
 
+    /* A combination may never have been rendered (Studio portrait's full
+       transfer). The switches still reach it, and the result then shows
+       the closest rendered combination
+       (a note under the switches says so): the fewest switches apart;
+       among equals, one that
+       keeps the switch just flipped (`moved`) as the visitor set it, then
+       the one with the most edits kept. */
+    var moved = -1;
+    function nearest(m) {
+      if (has(m)) return m;
+      var best = null, bestKey = null;
+      cur.available.concat([m.replace(/1/g, "0")]).forEach(function (c) {
+        var d = 0;
+        for (var i = 0; i < m.length; i++) if (c[i] !== m[i]) d++;
+        var key = d * 2 + (moved >= 0 && c[moved] !== m[moved] ? 1 : 0);
+        if (best === null || key < bestKey) { best = c; bestKey = key; }
+      });
+      return best;
+    }
+
     function toggle(i) {
-      var probe = mask.slice();
-      probe[i] = probe[i] ? 0 : 1;
-      if (!has(maskStr(probe))) return;
-      mask = probe;
+      mask[i] = mask[i] ? 0 : 1;
+      moved = i;
       render();
     }
 
+    /* the stepper walks the rendered combinations, on from the one shown */
     function step(dir) {
       var order = cycle();
-      var at = order.indexOf(maskStr(mask));
+      var at = order.indexOf(nearest(maskStr(mask)));
       var next = order[(at + dir + order.length) % order.length];
       mask = next.split("").map(Number);
+      moved = -1;
       render();
     }
 
     function renderInputs() {
       var a = $("#imgA"), ap = $("#imgAp"), b = $("#imgB");
-      a.src = cur.dir + "/a.webp";
-      ap.src = cur.dir + "/ap.webp";
-      b.src = cur.dir + "/b.webp";
+      litesIn = Promise.all([
+        paint(a, cur.dir + "/a.webp", cur.dir + "/lite/a.webp"),
+        paint(ap, cur.dir + "/ap.webp", cur.dir + "/lite/ap.webp"),
+        paint(b, cur.dir + "/b.webp", cur.dir + "/lite/b.webp")]);
       a.alt = "Demonstration source image A — " + cur.title;
-      ap.alt = "Demonstration edited image A prime — all " + cur.edits.length + " edits applied";
+      ap.alt = "Demonstration edited image A prime — " + every(cur.edits.length) + " edits applied";
       b.alt = "Query image B";
       $("#fA").dataset.caption = "A &mdash; the demonstration source image.";
-      $("#fAp").dataset.caption = "A&prime; &mdash; the same subject with all " +
-        cur.edits.length + " demonstrated edits applied (" + esc(cur.title) + ").";
+      $("#fAp").dataset.caption = "A&prime; &mdash; the same subject with " +
+        every(cur.edits.length) + " demonstrated edits applied (" + esc(cur.title) + ").";
       $("#fB").dataset.caption = "B &mdash; the query image the selected edits are transferred to.";
       $$(".frame", $("#board")).forEach(function (f) {
         f.style.setProperty("--ar", ar(cur));
@@ -234,34 +752,38 @@
     }
 
     function render() {
-      var m = maskStr(mask);
-      var nKept = mask.filter(Boolean).length;
+      var want = maskStr(mask);           /* the switches */
+      var m = nearest(want);              /* the combination shown */
+      var near = m !== want;
+      var nKept = m.split("1").length - 1;
       var n = cur.edits.length;
 
-      /* chips: pressed state + reachability */
-      var blocked = [];
       $$("#chips .chip").forEach(function (b, i) {
         var kept = mask[i] === 1;
         b.setAttribute("aria-pressed", String(kept));
-        var probe = mask.slice();
-        probe[i] = kept ? 0 : 1;
-        var ok = has(maskStr(probe));
-        b.disabled = !ok;
-        b.title = ok
-          ? (kept ? "Suppress this edit" : "Keep this edit")
-          : "That combination was not rendered for this demonstration";
-        if (!ok) blocked.push(i + 1);
+        b.title = kept ? "Suppress this edit" : "Keep this edit";
       });
 
       var hint = [];
-      if (!has(new Array(n).fill("1").join(""))) {
-        hint.push("Full transfer was not rendered for this demonstration.");
+      /* each warning in full, and short for a phone */
+      function warn(full, short) {
+        hint.push('<span class="hint-long">' + full + '</span><span class="hint-short">' + short + "</span>");
       }
-      if (blocked.length) {
-        hint.push("Greyed-out edits would need a combination we did not render &mdash; " +
-          "switch another edit back on first.");
+      if (near) {
+        /* say how the closest one differs from the switches */
+        var diff = cur.edits.map(function (e, i) {
+          if (want[i] === m[i]) return "";
+          return "<em>" + esc(e.label) + "</em> is " + (want[i] === "1" ? "left out" : "still in");
+        }).filter(Boolean).join("; ");
+        warn("This mix was not rendered, so the closest one is shown: " + diff + ".",
+             "Not rendered: the closest one is shown.");
       }
-      if (!hint.length) hint.push("Click an edit to suppress it, or press its number key.");
+
+      /* (the plain how-to gives way on a phone, where room is short) */
+      $("#chipHint").classList.toggle("plain", !hint.length);
+      if (!hint.length) hint.push(touch
+        ? "Switch an edit off to drop it, or on to carry it over."
+        : "Switch an edit off to drop it, or on to carry it over; its number key works too.");
       $("#chipHint").innerHTML = hint.join(" ");
 
       /* result */
@@ -270,54 +792,80 @@
       var none = isNone(m);
       var src = outSrc(m);
       $("#outTag").innerHTML = none ? "B" : "B&prime;";
-      slot.dataset.caption = none
-        ? "B &mdash; every edit is switched off, so nothing is transferred."
-        : "B&prime; &mdash; " + nKept + " of " + n + " demonstrated edits transferred to B.";
+      slot.dataset.caption = near
+        ? (none ? "B" : "B&prime;") + " &mdash; that mix of edits was not rendered, so this is the " +
+          "closest one: " + diff + "."
+        : none
+          ? "B &mdash; every edit is switched off, so nothing is transferred."
+          : "B&prime; &mdash; " + nKept + " of " + n + " demonstrated edits transferred to B.";
       slot.style.setProperty("--ar", ar(cur));
       if (out.getAttribute("src") !== src) {
-        /* Toggling quickly leaves several decodes in flight and they can settle
-           out of order, so only the newest one is allowed to paint. */
+        /* The old result fades out over the new one's light copy (usually in
+           hand already: preload() fetched it early), which stays on show
+           until the full image, asked for once the light one is in, has
+           downloaded and fades in over it. Toggling quickly leaves several
+           downloads in flight and they can settle out of order, so only the
+           newest one is allowed to paint. */
         var token = ++swapToken;
         out.classList.add("fade", "hide");
-        var probe = new Image();
-        probe.onload = probe.onerror = function () {
+        slot.style.backgroundImage = "url('" + liteSrc(m) + "')";
+        slot.dataset.zoom = src;
+        slot.dataset.lite = liteSrc(m);
+        var show = function () {
           if (token !== swapToken) return;
           out.src = src;
-          out.alt = none
-            ? "The query image B, shown because every edit is switched off"
-            : "SIA result keeping " + nKept + " of " + n + " demonstrated edits";
+          out.alt = (near ? "The closest rendered combination: " : "") + (none
+            ? "the query image B, with no edit transferred"
+            : "SIA result keeping " + nKept + " of " + n + " demonstrated edits");
           out.classList.remove("hide");
         };
-        probe.src = src;
+        var full = function () { if (token === swapToken) fetchImage(src, "high", show, show); };
+        fetchImage(liteSrc(m), "high", full, full);
       }
 
-      $("#outNote").textContent = nKept === n
-        ? "Full transfer: all " + n + " edits applied."
-        : nKept === 0
-          ? "Every edit off — nothing is transferred, so B stands unchanged."
-          : nKept + " of " + n + " edits carried over.";
+      $("#outNote").innerHTML = near
+        ? "Closest render: " + (none ? "the untouched query." : nKept + " of " + n + " edits carried over.")
+        : nKept === n
+          ? "Full transfer: " + every(n) + " edits applied."
+          : nKept === 0
+            ? "Every edit is off, so this is the untouched query. Switch one on."
+            : nKept + " of " + n + " edits carried over.";
 
-      /* counter */
+      /* counter: where the combination shown sits among the rendered ones */
       var all = cycle();
-      var idx = all.indexOf(m);
-      $("#counter").textContent = idx >= 0
-        ? "combination " + (idx + 1) + " / " + all.length
-        : "not rendered";
-      $("#reset").disabled = !has(new Array(n).fill("1").join("")) || nKept === n;
+      $("#counter").innerHTML = '<span class="cw">combination </span>' +
+        (all.indexOf(m) + 1) + " / " + all.length;
+      $("#reset").disabled = want.indexOf("0") < 0;
+      fit();
+    }
+
+    /* On a phone the query and the result take whatever height the rest of
+       the demo (tabs, thumbnails, switches, footer) leaves on the screen:
+       measure that rest into --fixed (see .board in style.css). */
+    function fit() {
+      var board = $("#board"), strip = $("#strip"), row = $(".boardrow .bgroup:last-child", board);
+      if (!row) return;
+      var rest = board.getBoundingClientRect().bottom - strip.getBoundingClientRect().top -
+                 row.getBoundingClientRect().height;
+      board.style.setProperty("--fixed", Math.round(rest) + "px");
     }
 
     function init() {
+      window.addEventListener("resize", function () { tighten(); fit(); });
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { tighten(); fit(); });
       mask = defaultMask(cur);
-      preload(cur);
+      var first = cur;
       buildStrip();
       buildChips();
       renderInputs();
       render();
+      /* (at first, the full combinations wait for the page to have loaded) */
+      preload(first, whenLoaded);
+      litesIn.then(preloadTabs);
 
       $("#reset").addEventListener("click", function () {
-        var all = new Array(cur.edits.length).fill("1").join("");
-        if (!has(all)) return;
-        mask = all.split("").map(Number);
+        mask = cur.edits.map(function () { return 1; });
+        moved = -1;
         render();
       });
       $("#cPrev").addEventListener("click", function () { step(-1); });
@@ -336,205 +884,764 @@
     return { init: init };
   }());
 
-  /* =========================================================== cinema */
-  var cinema = (function () {
-    if (!EXAMPLES.length) return { init: function () {} };
+  /* ======================================================== analogies */
+  /* One example laid out as A -> A' beside a B / B' compare slider, with
+     every demonstrated edit listed under A -> A' and, under B -> B', the same
+     edits marked carried over or excluded. */
+  /* `lite`: a light copy of the image, shown under it until it has downloaded */
+  function frame(tag, src, alt, cls, exAr, caption, lite) {
+    return '<button class="frame' + (cls ? " " + cls : "") + '" type="button" data-zoom' +
+      (caption ? ' data-caption="' + esc(caption) + '"' : "") +
+      ' style="--ar:' + exAr + (lite ? ";background-image:url('" + lite + "')" : "") +
+      '" aria-label="Enlarge ' + esc(alt) + '">' +
+      '<span class="tag' + (cls === "big" ? " accent" : "") + '">' + tag + "</span>" +
+      '<img src="' + src + '" alt="' + esc(alt) + '" loading="lazy" decoding="async"></button>';
+  }
 
-    var view = [];
+  var ICON_KEPT = '<svg width="9" height="7" viewBox="0 0 9 7" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M1 3.6L3.4 6 8 1"/></svg>';
+  var ICON_DROPPED = '<svg width="7" height="7" viewBox="0 0 8 8" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M1.2 1.2l5.6 5.6M6.8 1.2L1.2 6.8"/></svg>';
+
+  /* "A -> A'" / "B -> B'" in the paper's notation */
+  var PAIR_A = '<span class="nt">A&thinsp;&rarr;&thinsp;A&prime;</span>';
+  var PAIR_B = '<span class="nt">B&thinsp;&rarr;&thinsp;B&prime;</span>';
+
+  /* how many of the demonstrated edits reach B': "1 of 4" */
+  function share(ex) {
+    var k = ex.edits.filter(function (e) { return e.kept; }).length;
+    return k + " of " + ex.edits.length;
+  }
+
+  function analogyHTML(ex) {
+    var a = ar(ex);
+    function lite(n) { return ex.dir + "/lite/" + n + ".webp"; }
+
+    /* every demonstrated edit, then the same edits again for B', each marked
+       carried over (green) or excluded (red) */
+    function phrase(e, i, mark) {
+      return '<div class="ph' + (mark ? (e.kept ? " k" : " d") : "") + '"><i>e' + (i + 1) + "</i>" +
+        (mark ? '<b class="mk">' + (e.kept ? ICON_KEPT : ICON_DROPPED) + "</b>" : "") +
+        '<span class="lbl">' + (mark ? '<span class="visually-hidden">' +
+          (e.kept ? "carried over: " : "excluded: ") + "</span>" : "") + esc(e.label) + "</span></div>";
+    }
+    var all = ex.edits.map(function (e, i) { return phrase(e, i, false); }).join("");
+    var subset = ex.edits.map(function (e, i) { return phrase(e, i, true); }).join("");
+
+    return '<div class="cinema">' +
+      '<div class="demo-col">' +
+        '<div class="col-label">Demonstration</div>' +
+        '<div class="demo-row">' +
+        frame("A", ex.dir + "/a.webp", "the demonstration source image A", "", a,
+              "A &mdash; the demonstration source image.", lite("a")) +
+        '<div class="demo-arrow" aria-hidden="true"><svg width="11" height="20" viewBox="0 0 11 20" ' +
+          'fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" ' +
+          'stroke-linejoin="round"><path d="M5.5 0v16M1 12.5l4.5 4.5L10 12.5"/></svg></div>' +
+        frame("A&prime;", ex.dir + "/ap.webp",
+              "the demonstration with all " + ex.edits.length + " edits applied", "", a,
+              "A&prime; &mdash; all " + ex.edits.length + " demonstrated edits are present here.",
+              lite("ap")) +
+        "</div>" +
+      "</div>" +
+
+      '<div class="query-col">' +
+        '<div class="col-label">Query and result</div>' +
+        '<div class="wipe" style="--p:50%;--ar:' + a + '">' +
+          '<div class="layer lb" style="background-image:url(\'' + lite("out") + '\')">' +
+            '<img src="' + ex.dir + '/out.webp" ' +
+            'alt="SIA result: only the kept edits are transferred" loading="lazy" decoding="async"></div>' +
+          '<div class="layer lt" style="background-image:url(\'' + lite("b") + '\')">' +
+            '<img src="' + ex.dir + '/b.webp" ' +
+            'alt="the untouched query image B" loading="lazy" decoding="async"></div>' +
+          '<span class="pin l">B<span class="pin-w"> &middot; query</span></span>' +
+          '<span class="pin r">B&prime;<span class="pin-w"> &middot; result</span></span>' +
+          '<div class="handle"><span class="grip"><svg width="13" height="9" viewBox="0 0 13 9" ' +
+            'fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" ' +
+            'stroke-linejoin="round"><path d="M4 1L1 4.5 4 8M9 1l3 3.5L9 8"/></svg></span></div>' +
+          '<input type="range" class="wiperange" min="0" max="100" value="50" step="0.5" ' +
+            'aria-label="Wipe between the query image and the result">' +
+        "</div>" +
+        '<p class="wipehint">Drag the handle to compare</p>' +
+      "</div>" +
+
+      '<div class="info">' +
+        '<div class="col-label">This example</div>' +
+        "<h3>" + esc(ex.title) + "</h3>" +
+        '<div class="eset"><div class="eset-h">' + PAIR_A + "<span>" + ex.edits.length +
+          " demonstrated edits</span></div>" +
+          '<div class="phrases">' + all + "</div></div>" +
+        '<div class="eset"><div class="eset-h">' + PAIR_B + "<span>keeps " + share(ex) + "</span></div>" +
+          '<div class="phrases">' + subset + "</div>" +
+          '<div class="legend"><span class="k"><i></i>carried over</span>' +
+            '<span class="d"><i></i>excluded</span></div></div>' +
+      "</div>" +
+    "</div>";
+  }
+
+  /* wire the compare slider inside `root`; returns a setter (0-100, the share
+     of the frame showing B) for moving it from code. `onUser` runs when the
+     visitor moves it themselves. */
+  function wireWipe(root, onUser) {
+    var r = $(".wiperange", root);
+    var w = $(".wipe", root);
+    if (!r || !w) return function () {};
+    var pinL = $(".pin.l", w), pinR = $(".pin.r", w);
+    function sync() {
+      var v = +r.value;
+      w.style.setProperty("--p", v + "%");
+      pinL.classList.toggle("lit", v > 12);
+      pinR.classList.toggle("lit", v < 88);
+    }
+    r.addEventListener("input", function () { sync(); if (onUser) onUser(); });
+    sync();
+    return function (v) { r.value = v; sync(); };
+  }
+
+  /* ========================================================= examples */
+  /* One example at a time, playing on its own: it opens on the query B, the
+     compare slider sweeps across to reveal B', it holds long enough to read
+     which edits were carried over, then cross-fades to the next. It runs
+     only while the section is on screen, pauses under the mouse, stops when
+     the visitor drags the slider themselves, and never starts by itself
+     under prefers-reduced-motion. Under it, a rail of small previews shows
+     the examples around the current one and follows along; a click on one
+     jumps there, and the rail can be swiped or scrolled to look further.
+     Prev / next, the arrow keys and "Surprise me" move by hand too. */
+  var explorer = (function () {
+    var stage = $("#exStage");
+    if (!EXAMPLES.length || !stage) return { init: function () {} };
+
+    var WAIT = 500, SWEEP = 1200, HOLD = 1200;   /* ms: on B, the sweep, on B' */
+    var CYCLE = WAIT + SWEEP + HOLD;
+    var bar = $("#exBar"), playBtn = $("#exPlay"), rail = $("#exRail");
+    var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var pos = 0;
+    var setWipe = function () {};
+    var playing = !reduced;
+    var inView = false, hovering = false, holdUntil = 0, holdTimer = 0;
+    var elapsed = 0, last = 0, raf = 0, swapTimer = 0;
+    var minH = 0;
 
-    function frame(tag, src, alt, cls, exAr, caption) {
-      return '<button class="frame' + (cls ? " " + cls : "") + '" type="button" data-zoom' +
-        (caption ? ' data-caption="' + esc(caption) + '"' : "") +
-        ' style="--ar:' + exAr + '" aria-label="Enlarge ' + esc(alt) + '">' +
-        '<span class="tag' + (cls === "big" ? " accent" : "") + '">' + tag + "</span>" +
-        '<img src="' + src + '" alt="' + esc(alt) + '" loading="lazy" decoding="async"></button>';
+    function running() {
+      return playing && inView && !hovering && performance.now() >= holdUntil &&
+        document.visibilityState === "visible";
+    }
+    /* a touch on the rail holds the playback for a moment, so the rail
+       doesn't slide away under the visitor's finger */
+    function hold() {
+      holdUntil = performance.now() + 3500;
+      clearTimeout(holdTimer);
+      holdTimer = setTimeout(tick, 3600);
+    }
+    function ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+    function frame(now) {
+      raf = 0;
+      if (!running()) return;
+      elapsed += Math.min(now - last, 100);
+      last = now;
+      var e = elapsed;
+      setWipe(e < WAIT ? 100 : e < WAIT + SWEEP ? 100 * (1 - ease((e - WAIT) / SWEEP)) : 0);
+      bar.style.transform = "scaleX(" + Math.min(1, e / CYCLE) + ")";
+      if (e >= CYCLE) { show(pos + 1); return; }
+      raf = requestAnimationFrame(frame);
+    }
+    function tick() {
+      if (running() && !raf) { last = performance.now(); raf = requestAnimationFrame(frame); }
     }
 
-    function cinemaHTML(ex) {
-      var a = ar(ex);
-      var dropped = ex.edits.filter(function (e) { return !e.kept; })
-        .map(function (e) { return TYPE_LABEL[e.type].toLowerCase(); });
-      var uniq = dropped.filter(function (k, i) { return dropped.indexOf(k) === i; });
-
-      var phrases = ex.edits.map(function (e, i) {
-        return '<div class="ph ' + (e.kept ? "k" : "d") + '"><i>e' + (i + 1) + "</i>" +
-          '<span class="lbl">' + esc(e.label) + "</span>" +
-          "<em>" + TYPE_LABEL[e.type].toLowerCase() + "</em></div>";
-      }).join("");
-
-      return '<div class="cinema">' +
-        '<div class="demo-col">' +
-          '<div class="col-label">Demonstration</div>' +
-          '<div class="demo-row">' +
-          frame("A", ex.dir + "/a.webp", "the demonstration source image A", "", a,
-                "A &mdash; the demonstration source image.") +
-          '<div class="demo-arrow" aria-hidden="true"><svg width="11" height="20" viewBox="0 0 11 20" ' +
-            'fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" ' +
-            'stroke-linejoin="round"><path d="M5.5 0v16M1 12.5l4.5 4.5L10 12.5"/></svg></div>' +
-          frame("A&prime;", ex.dir + "/ap.webp",
-                "the demonstration with all " + ex.edits.length + " edits applied", "", a,
-                "A&prime; &mdash; all " + ex.edits.length + " demonstrated edits are present here.") +
-          "</div>" +
-        "</div>" +
-
-        "<div>" +
-          '<div class="col-label">Query and result</div>' +
-          '<div class="wipe" style="--p:50%;--ar:' + a + '">' +
-            '<div class="layer lb"><img src="' + ex.dir + '/out.webp" ' +
-              'alt="SIA result: only the kept edits are transferred" loading="lazy" decoding="async"></div>' +
-            '<div class="layer lt"><img src="' + ex.dir + '/b.webp" ' +
-              'alt="the untouched query image B" loading="lazy" decoding="async"></div>' +
-            '<span class="pin l">B &middot; query</span>' +
-            '<span class="pin r">B&prime; &middot; result</span>' +
-            '<div class="handle"><span class="grip"><svg width="13" height="9" viewBox="0 0 13 9" ' +
-              'fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" ' +
-              'stroke-linejoin="round"><path d="M4 1L1 4.5 4 8M9 1l3 3.5L9 8"/></svg></span></div>' +
-            '<input type="range" class="wiperange" min="0" max="100" value="50" step="0.5" ' +
-              'aria-label="Wipe between the query image and the result">' +
-          "</div>" +
-          '<p class="wipehint">Drag the handle to compare</p>' +
-        "</div>" +
-
-        '<div class="info">' +
-          '<div class="col-label">This example</div>' +
-          "<h3>" + esc(ex.title) + "</h3>" +
-          '<div class="kindline"><b>' + SUBJECT_LABEL[ex.subject] + "</b> &middot; " +
-            ex.edits.length + " demonstrated edits &middot; " +
-            (uniq.length ? "suppressing " + uniq.join(", ") : "full transfer") +
-          "</div>" +
-          '<div class="phrases">' + phrases + "</div>" +
-          '<div class="legend"><span class="k"><i></i>kept</span>' +
-            '<span class="d"><i></i>suppressed</span></div>' +
-        "</div>" +
-      "</div>";
+    function setPlaying(on) {
+      playing = on;
+      playBtn.setAttribute("aria-label", on ? "Pause the examples" : "Play the examples");
+      playBtn.classList.toggle("paused", !on);
+      stage.setAttribute("aria-live", on ? "off" : "polite");
+      if (on) tick();
     }
 
-    function wireWipe() {
-      var r = $(".wiperange");
-      var w = $(".wipe");
-      if (!r || !w) return;
-      var pinL = $(".pin.l", w), pinR = $(".pin.r", w);
-      function sync() {
-        var v = +r.value;
-        w.style.setProperty("--p", v + "%");
-        pinL.classList.toggle("lit", v > 12);
-        pinR.classList.toggle("lit", v < 88);
-      }
-      r.addEventListener("input", sync);
-      sync();
-    }
-
-    /* the rail only fades on the side that still has thumbnails past it */
-    function fades() {
-      var s = $("#film"), wrap = $("#filmwrap");
-      if (!s || !wrap) return;
-      var max = s.scrollWidth - s.clientWidth;
-      wrap.classList.toggle("at-start", s.scrollLeft <= 1);
-      wrap.classList.toggle("at-end", max <= 1 || s.scrollLeft >= max - 1);
-    }
-
-    function buildFilm() {
-      $("#film").innerHTML = view.map(function (ex, i) {
-        return '<button type="button" data-i="' + i + '" aria-current="' + (i === pos) + '" ' +
+    /* the rail: one small result per example, the current one ringed and
+       kept in the middle; the ends fade while there is more past them */
+    function buildRail() {
+      rail.innerHTML = EXAMPLES.map(function (ex, i) {
+        return '<button type="button" data-i="' + i + '" aria-current="false" ' +
           'title="' + esc(ex.title) + '" aria-label="' + esc(ex.title) + '">' +
-          '<img src="' + ex.dir + '/thumb.webp" alt="" aria-hidden="true"></button>';
+          '<img src="' + ex.dir + '/thumb.webp" alt="" loading="lazy" decoding="async"></button>';
       }).join("");
-      $$("#film button").forEach(function (b) {
-        b.addEventListener("click", function () { pos = +b.dataset.i; paint(); });
+      $$("button", rail).forEach(function (b) {
+        b.addEventListener("click", function () { show(+b.dataset.i); });
+      });
+      rail.addEventListener("scroll", fades, { passive: true });
+      ["wheel", "touchstart", "pointerdown"].forEach(function (t) {
+        rail.addEventListener(t, hold, { passive: true });
       });
     }
-
-    function buildAllGrid() {
-      $("#allgrid").innerHTML = view.map(function (ex, i) {
-        var a = ar(ex);
-        var pills = ex.edits.map(function (e, j) {
-          return '<span class="gpill ' + (e.kept ? "k" : "d") + '" title="' + esc(e.label) +
-            '">e' + (j + 1) + "</span>";
-        }).join("");
-        return '<div class="gcard" data-i="' + i + '" role="button" tabindex="0" ' +
-          'aria-label="Open ' + esc(ex.title) + ' in the viewer">' +
-          '<div class="row">' +
-            '<div class="frame" style="--ar:' + a + '"><span class="tag">A</span>' +
-              '<img src="' + ex.dir + '/a.webp" alt="" loading="lazy"></div>' +
-            '<div class="frame" style="--ar:' + a + '"><span class="tag">A&prime;</span>' +
-              '<img src="' + ex.dir + '/ap.webp" alt="" loading="lazy"></div>' +
-            '<div class="frame big" style="--ar:' + a + '"><span class="tag accent">B&prime;</span>' +
-              '<img src="' + ex.dir + '/out.webp" alt="" loading="lazy"></div>' +
-          "</div>" +
-          "<h4>" + esc(ex.title) + "</h4>" +
-          '<div class="gpills">' + pills + "</div></div>";
-      }).join("");
-
-      $$("#allgrid .gcard").forEach(function (b) {
-        function go() {
-          pos = +b.dataset.i;
-          paint();
-          $("#cinemaHost").scrollIntoView({ block: "center", behavior: "smooth" });
-        }
-        b.addEventListener("click", go);
-        b.addEventListener("keydown", function (e) {
-          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); }
-        });
-      });
+    function fades() {
+      var max = rail.scrollWidth - rail.clientWidth;
+      rail.parentNode.classList.toggle("at-start", rail.scrollLeft <= 1);
+      rail.parentNode.classList.toggle("at-end", max <= 1 || rail.scrollLeft >= max - 1);
     }
-
-    function paint() {
-      var host = $("#cinemaHost");
-      if (!view.length) {
-        host.innerHTML = '<p class="empty">No examples to show.</p>';
-        $("#film").innerHTML = "";
-        return;
-      }
-      host.innerHTML = cinemaHTML(view[pos]);
-      wireWipe();
-      var strip = $("#film");
-      $$("#film button").forEach(function (b, i) {
+    function follow() {
+      $$("button", rail).forEach(function (b, i) {
         b.setAttribute("aria-current", String(i === pos));
-        if (i === pos && strip) {
-          /* keep the thumbnail in view without scrolling the document */
-          var want = b.offsetLeft - (strip.clientWidth - b.offsetWidth) / 2;
-          strip.scrollLeft = Math.max(0, want);
+        if (i === pos) {
+          rail.scrollTo({ left: b.offsetLeft - (rail.clientWidth - b.offsetWidth) / 2,
+                          behavior: reduced ? "auto" : "smooth" });
         }
       });
       fades();
     }
 
-    function refresh(resetTo) {
-      view = EXAMPLES.slice();
-      pos = Math.min(resetTo || 0, Math.max(view.length - 1, 0));
-      buildFilm();
-      buildAllGrid();
-      paint();
+    /* Fetch an example's images ahead of time: the light copies first (a few
+       KB each, so even a slow connection has them by the time the example
+       comes up), then, with `full`, the full-quality ones behind them. */
+    var PARTS = ["a", "ap", "b", "out"];
+    var fetching = [];   /* full-quality preloads: [example, image] */
+    function preload(ex, full) {
+      PARTS.forEach(function (n) { fetchImage(ex.dir + "/lite/" + n + ".webp"); });
+      if (full) PARTS.forEach(function (n) {
+        fetching.push([ex, fetchImage(ex.dir + "/" + n + ".webp", "low")]);
+      });
+    }
+    /* On a slow connection, images still on their way for examples the
+       visitor has moved on from would only hold up the one in front of them,
+       so those downloads stop (`keep`: the examples still wanted). */
+    var current = null;   /* the example on the stage */
+    function drop(keep) {
+      if (current && keep.indexOf(current) < 0) {
+        /* (an image still loading is see-through, so this shows nothing) */
+        $$("img", stage).forEach(function (im) {
+          if (!im.complete) im.removeAttribute("src");
+        });
+      }
+      fetching = fetching.filter(function (f) {
+        if (f[1].complete) return false;
+        if (keep.indexOf(f[0]) >= 0) return true;
+        f[1].src = "";
+        return false;
+      });
+    }
+    /* An image still downloading is see-through, so its light copy (the
+       background under it) shows; once it arrives it fades in over that. One
+       already in hand is simply shown. */
+    function sharpen(root) {
+      $$(".frame img, .wipe img", root).forEach(function (im) {
+        if (im.complete && im.naturalWidth) return;
+        im.classList.add("ld");
+        im.addEventListener("load", function () { im.classList.add("in"); });
+      });
+    }
+
+    /* On a phone the compare slider takes whatever height the rest of the
+       example and its toolbar leave on the screen: measure that rest into
+       --rest (see .ex-stage in style.css). */
+    function fit() {
+      var cin = $(".cinema", stage), w = $(".wipe", stage), tools = $(".ex-tools");
+      if (!cin || !w || !tools) return;
+      var slack = stage.getBoundingClientRect().height - cin.getBoundingClientRect().height;
+      var rest = tools.getBoundingClientRect().bottom - stage.getBoundingClientRect().top - slack -
+                 w.getBoundingClientRect().height;
+      stage.style.setProperty("--rest", Math.round(rest) + "px");
+    }
+
+    function show(i) {
+      pos = (i + EXAMPLES.length) % EXAMPLES.length;
+      drop([EXAMPLES[pos], EXAMPLES[(pos + 1) % EXAMPLES.length]]);
+      /* this example's light copies go to the front of the queue */
+      PARTS.forEach(function (n) { fetchImage(EXAMPLES[pos].dir + "/lite/" + n + ".webp", "high"); });
+      elapsed = 0;
+      bar.style.transform = "scaleX(0)";
+      follow();
+      clearTimeout(swapTimer);
+      stage.classList.add("swap");
+      swapTimer = setTimeout(function () {
+        current = EXAMPLES[pos];
+        stage.innerHTML = analogyHTML(current);
+        sharpen(stage);
+        fit();
+        setWipe = wireWipe(stage, function () { if (playing) setPlaying(false); });
+        setWipe(playing ? 100 : 50);
+        /* only ever grow, so the controls under it don't jump between examples */
+        minH = Math.max(minH, stage.offsetHeight);
+        stage.style.minHeight = minH + "px";
+        stage.classList.remove("swap");
+        /* next is where the playback goes; previous is one click away */
+        var next = EXAMPLES[(pos + 1) % EXAMPLES.length];
+        var prev = EXAMPLES[(pos - 1 + EXAMPLES.length) % EXAMPLES.length];
+        whenLoaded(function () { preload(next, true); preload(prev, false); });
+        tick();
+      }, stage.firstChild ? 180 : 0);
     }
 
     function init() {
-      refresh(0);
-
-      var strip = $("#film");
-      if (strip) {
-        strip.addEventListener("scroll", fades, { passive: true });
-        window.addEventListener("resize", fades);
-      }
-
-      $("#showAll").addEventListener("click", function () {
-        var g = $("#allgrid");
-        g.hidden = !g.hidden;
-        this.textContent = g.hidden ? "Show all examples at once" : "Hide the full grid";
-        this.setAttribute("aria-expanded", String(!g.hidden));
+      buildRail();
+      $("#exPrev").addEventListener("click", function () { show(pos - 1); });
+      $("#exNext").addEventListener("click", function () { show(pos + 1); });
+      playBtn.addEventListener("click", function () {
+        setPlaying(!playing);
+        if (playing && elapsed >= WAIT + SWEEP) show(pos + 1);   /* resume with fresh motion */
       });
+      $("#exSurprise").addEventListener("click", function () {
+        var i = Math.floor(Math.random() * (EXAMPLES.length - 1));
+        show(i >= pos ? i + 1 : i);
+      });
+
+      /* the mouse over the example or the rail pauses it */
+      [stage, rail].forEach(function (el) {
+        el.addEventListener("pointerenter", function (e) { if (e.pointerType === "mouse") hovering = true; });
+        el.addEventListener("pointerleave", function (e) {
+          if (e.pointerType === "mouse") { hovering = false; tick(); }
+        });
+      });
+      document.addEventListener("visibilitychange", tick);
+      window.addEventListener("resize", function () { minH = 0; stage.style.minHeight = ""; fades(); fit(); });
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      if ("IntersectionObserver" in window) {
+        /* on screen = a third of it showing, or (on a phone, where it is taller
+           than the screen) half the screen filled by it */
+        new IntersectionObserver(function (es) {
+          var e = es[es.length - 1];                      /* the latest, if several came at once */
+          inView = e.intersectionRatio >= 0.35 || e.intersectionRect.height >= window.innerHeight * 0.5;
+          tick();
+        }, { threshold: [0, 0.1, 0.2, 0.35, 0.5, 0.6] }).observe(stage);
+      } else {
+        inView = true;
+      }
 
       document.addEventListener("keydown", function (e) {
         if (e.metaKey || e.ctrlKey || e.altKey) return;
+        /* the arrows move the compare slider when it has focus */
         if (e.target.matches && e.target.matches("input,textarea,select")) return;
         if (!$("#lightbox").hidden) return;
         var box = $("#examples").getBoundingClientRect();
         if (box.top > window.innerHeight * 0.6 || box.bottom < window.innerHeight * 0.4) return;
-        if (e.key === "ArrowLeft" && pos > 0) { pos--; paint(); }
-        if (e.key === "ArrowRight" && pos < view.length - 1) { pos++; paint(); }
+        if (e.key === "ArrowLeft") { show(pos - 1); e.preventDefault(); }
+        if (e.key === "ArrowRight") { show(pos + 1); e.preventDefault(); }
       });
+
+      setPlaying(playing);
+      show(0);
     }
 
+    return { init: init };
+  }());
+
+  /* ============================================================= tour */
+  /* The paper's pipeline figure, part by part: a step dims everything but its
+     region (given in percent on the step's button, measured from the PDF) and
+     shows that part's caption. The regions are also buttons on the figure.
+     With a mouse, hovering a part enlarges it (see enlarge). */
+  var tour = (function () {
+    var root = $("#tour");
+    if (!root) return { init: function () {} };
+    var btns = $$(".tour-steps button", root), texts = $$("#tourText > div", root);
+    var spot = $("#tourSpot"), hots = $("#tourHots"), stage = $(".tour-stage", root), pop = $("#tourPop");
+    var canvas = $(".tour-canvas", root);
+    var step = 0, popped = 0, timer = 0, lens = false;
+
+    function region(i) {
+      var r = btns[i].dataset.r;
+      return r ? r.split(" ").map(Number) : [0, 0, 100, 100];
+    }
+    function place(el, r) {
+      el.style.left = r[0] + "%";
+      el.style.top = r[1] + "%";
+      el.style.width = (r[2] - r[0]) + "%";
+      el.style.height = (r[3] - r[1]) + "%";
+    }
+    function go(i) {
+      step = (i + btns.length) % btns.length;
+      btns.forEach(function (b, j) { b.setAttribute("aria-pressed", String(j === step)); });
+      texts.forEach(function (t, j) { t.hidden = j !== step; });
+      $$("button", hots).forEach(function (h) {
+        h.setAttribute("aria-current", String(+h.dataset.step === step));
+      });
+      place(spot, region(step));
+      root.classList.toggle("focus", step > 0);
+      zoom();
+    }
+
+    /* On a touch screen the figure is too small to read part by part, so a
+       step zooms into its part: the stage takes the part's shape at the
+       stage's width, and the figure is scaled (about its corner) and shifted
+       so the part fills it. Overview is the whole figure at scale 1. */
+    function zoom() {
+      if (!lens) return;
+      var r = region(step), k = 100 / (r[2] - r[0]);
+      var base = $("picture img", stage);
+      var ar = base.getAttribute("height") / base.getAttribute("width");
+      stage.style.height = stage.clientWidth * ar * (r[3] - r[1]) / 100 * k + "px";
+      canvas.style.transform = step ? "scale(" + k + ") translate(" + -r[0] + "%," + -r[1] + "%)" : "";
+      canvas.style.setProperty("--k", k);
+    }
+
+    /* Part i, enlarged: a second copy of the figure, scaled by s and offset
+       so the part fills the pop-out. The pop-out is the part scaled by s,
+       nudged to stay inside the figure; it grows out of the part (scaled from
+       1/s about the fixed point of that map). The figure is SVG, so the copy
+       is drawn sharp at its new size. All in percent, so resizing holds. */
+    function enlarge(i) {
+      if (i === popped) return;
+      var r = region(i), w = r[2] - r[0], h = r[3] - r[1];
+      var s = Math.min(1.8, 96 / w, 96 / h);
+      var pw = w * s, ph = h * s;
+      var px = Math.min(Math.max(r[0] + w / 2 - pw / 2, 2), 98 - pw);
+      var py = Math.min(Math.max(r[1] + h / 2 - ph / 2, 2), 98 - ph);
+      var ax = (s * r[0] - px) / (s - 1), ay = (s * r[1] - py) / (s - 1);
+      pop.classList.remove("on");
+      pop.classList.add("snap");
+      place(pop, [px, py, px + pw, py + ph]);
+      pop.style.transformOrigin = (ax - px) / pw * 100 + "% " + (ay - py) / ph * 100 + "%";
+      pop.style.setProperty("--s", String(1 / s));
+      var img = pop.firstElementChild;          /* the figure and its living layer */
+      img.style.width = 100 * s / pw * 100 + "%";
+      img.style.left = -s * r[0] / pw * 100 + "%";
+      img.style.top = -s * r[1] / ph * 100 + "%";
+      void pop.offsetWidth;                     /* start from the part's own size */
+      pop.classList.remove("snap");
+      pop.classList.add("on");
+      pop.setAttribute("aria-label", btns[i].textContent.replace(/^\d/, "").trim());
+      popped = i;
+    }
+    function shrink() {
+      clearTimeout(timer);
+      pop.classList.remove("on");
+      popped = 0;
+    }
+
+    function init() {
+      hots.innerHTML = btns.slice(1).map(function (b) {
+        return '<button type="button" data-step="' + b.dataset.step + '" aria-label="Show ' +
+          esc(b.textContent.replace(/^\d/, "").trim()) + '"></button>';
+      }).join("");
+      $$("button", hots).forEach(function (h) {
+        place(h, region(+h.dataset.step));
+        h.addEventListener("click", function () { go(+h.dataset.step === step ? 0 : +h.dataset.step); });
+      });
+      btns.forEach(function (b, j) { b.addEventListener("click", function () { go(j); }); });
+      $("#tourPrev").addEventListener("click", function () { go(step - 1); });
+      $("#tourNext").addEventListener("click", function () { go(step + 1); });
+
+      /* the figure follows the theme: its "-dark" files draw the lines and
+         labels that sit on the bare page light */
+      var hover = pop && !touch;
+      if (touch && canvas) {
+        lens = true;
+        zoom();                        /* fix the stage's height before the canvas lifts out */
+        stage.classList.add("lens");
+        window.addEventListener("resize", zoom);
+      }
+      var still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      function themed() {
+        var suf = document.documentElement.getAttribute("data-theme") === "light" ? ".svg" : "-dark.svg";
+        $("picture source", stage).setAttribute("srcset", "static/figures/architecture" + suf);
+        $("picture img", stage).setAttribute("src", "static/figures/architecture-base" + suf);
+        $(".tour-live", stage).setAttribute("src", "static/figures/architecture-live" + suf);
+        if (hover) {
+          var pi = $$("img", pop);
+          pi[0].src = "static/figures/architecture" + (still ? "" : "-base") + suf;
+          pi[1].src = "static/figures/architecture-live" + suf;
+        }
+      }
+      themed();
+      new MutationObserver(themed).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+      /* hover to enlarge, for a mouse; a short delay keeps a pointer that is
+         only crossing the figure from setting it off */
+      if (hover) {
+        var later = function (i) {
+          clearTimeout(timer);
+          timer = setTimeout(function () { enlarge(i); }, 140);
+        };
+        $$("button", hots).forEach(function (h) {
+          h.addEventListener("pointerenter", function (e) {
+            if (e.pointerType === "mouse") later(+h.dataset.step);
+          });
+          h.addEventListener("pointerleave", function () { clearTimeout(timer); });
+        });
+        /* the pop-out stays while the pointer is on it; leaving it hands over
+           to whichever part is under the pointer then */
+        pop.addEventListener("pointerleave", function (e) {
+          shrink();
+          var under = document.elementFromPoint(e.clientX, e.clientY);
+          var h = under && under.closest ? under.closest("#tourHots button") : null;
+          if (h) later(+h.dataset.step);
+        });
+        pop.addEventListener("click", function () { go(popped); });
+        stage.addEventListener("pointerleave", shrink);
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") shrink(); });
+      }
+      go(0);
+    }
+    return { init: init };
+  }());
+
+  /* ============================================================= hood */
+  /* The mask and ExLoRA, live on the dragon sample: switching an edit off
+     marks its prompt tokens 1 in the mask, forks those tokens through
+     ExLoRA in the attention-layer diagram (every token goes through W and
+     AnaLoRA; ExLoRA's output is added back only on masked tokens), and shows
+     SIA's real result for that subset. */
+  var hood = (function () {
+    var root = $("#hood");
+    var smp = SAMPLES.filter(function (x) { return x.id === "s2"; })[0];
+    if (!root || !smp) return { init: function () {} };
+
+    var EDITS = ["Add lava", "Open wings", "Gold color"];
+    /* the prompt, word by word, with the edit each word belongs to (-1: none) */
+    var TOKS = [["The", -1], ["edits", -1], ["are:", -1], ["add", 0], ["lava,", 0], ["open", 1],
+                ["wings,", 1], ["gold", 2], ["color.", 2], ["Apply", -1], ["to", -1], ["image", -1], ["3.", -1]];
+    /* the layer diagram: one column per group of tokens */
+    var COLS = [["other words", "txt"], ["add lava", 0], ["open wings", 1], ["gold color", 2], ["image tokens", "img"]];
+    var keep = [1, 0, 1];                       /* start with the wings dropped */
+
+    /* One column of the layer diagram, drawn for both states; CSS shows the
+       straight path, or the fork through ExLoRA when the column is .on. */
+    /* ExLoRA's outline at x = E: a soft hourglass, A narrowing to the rank-r
+       waist and B widening back, with rounded rims and curved sides */
+    function lowRank(E) {
+      var t = 82, m = 106, b = 130, w = 19, k = 9;
+      function pt(dx, y) { return " " + (E + dx) + " " + y; }
+      return "M" + pt(5 - w, t) + "H" + (E + w - 5) +
+        /* right side, top to bottom */
+        "Q" + pt(w, t) + pt(w - 1, t + 5) +
+        "C" + pt(w - 4, m - 10) + pt(k, m - 4) + pt(k, m) +
+        "C" + pt(k, m + 4) + pt(w - 4, b - 10) + pt(w - 1, b - 5) +
+        "Q" + pt(w, b) + pt(w - 5, b) + "H" + (E - w + 5) +
+        /* left side, bottom to top */
+        "Q" + pt(-w, b) + pt(1 - w, b - 5) +
+        "C" + pt(4 - w, b - 10) + pt(-k, m + 4) + pt(-k, m) +
+        "C" + pt(-k, m - 4) + pt(4 - w, m - 10) + pt(1 - w, t + 5) +
+        "Q" + pt(-w, t) + pt(5 - w, t) + "Z";
+    }
+
+    function flowCol(c, i) {
+      var x = 64 + i * 128, P = x - 32, E = x + 32;
+      function sq(y, cls) {
+        return '<rect class="tk ' + cls + '" x="' + (x - 23) + '" y="' + y + '" width="20" height="20" rx="4"/>' +
+          '<rect class="tk ' + cls + '" x="' + (x + 3) + '" y="' + y + '" width="20" height="20" rx="4"/>';
+      }
+      function path(cls, d) { return '<path class="' + cls + '" d="' + d + '"/>'; }
+      return '<g class="fc">' +
+        '<text class="fl-name" x="' + x + '" y="14">' + esc(c[0]) + '</text>' +
+        sq(24, "in") +
+        path("fl-ln", "M" + x + " 46V60") +
+        path("fl-ln off-only", "M" + x + " 60V78") +
+        path("fl-ln on-only", "M" + P + " 78V60H" + E + "V78") +
+        '<g class="fl-proj"><rect x="' + (x - 30) + '" y="78" width="60" height="56" rx="8"/>' +
+          '<text class="fl-w" x="' + x + '" y="102">W</text>' +
+          '<text class="fl-ana" x="' + x + '" y="121">+ AnaLoRA</text></g>' +
+        /* ExLoRA: the low-rank pair, A narrowing to rank r and B widening back */
+        '<g class="fl-ex">' +
+          path("fl-mat", lowRank(E)) + path("fl-r", "M" + (E - 9) + " 106H" + (E + 9)) +
+          '<text class="fl-exl" x="' + E + '" y="145">ExLoRA</text></g>' +
+        path("fl-ln off-only", "M" + x + " 134V184") +
+        path("fl-ln on-only", "M" + P + " 134V162H" + (x - 9) + "M" + E + " 150V162H" + (x + 9) +
+          "M" + x + " 171V184") +
+        '<g class="on-only"><circle class="fl-sum" cx="' + x + '" cy="162" r="9"/>' +
+          path("fl-plus", "M" + (x - 4.5) + " 162H" + (x + 4.5) + "M" + x + " 157.5V166.5") + '</g>' +
+        sq(184, "out") +
+        '<text class="fl-note on-only" x="' + x + '" y="224">suppressed</text>' +
+        '</g>';
+    }
+
+    /* Every column in one row, or on a narrow screen three over two, so the
+       labels stay readable without scrolling sideways. True when it changed. */
+    var perRow = 0;
+    function layFlow() {
+      var svg = $("#hoodFlow"), n = COLS.length;
+      if (svg.parentNode.clientWidth < 480) n = 3;
+      if (n === perRow) return false;
+      perRow = n;
+      var rows = Math.ceil(COLS.length / n);
+      svg.setAttribute("viewBox", "0 0 " + n * 128 + " " + rows * 234);
+      svg.classList.toggle("narrow", n < COLS.length);
+      svg.innerHTML = COLS.map(function (c, i) {
+        var row = Math.floor(i / n), inRow = Math.min(n, COLS.length - row * n);
+        var dx = (i % n - i) * 128 + (n - inRow) * 64;      /* a short row is centred */
+        return '<g transform="translate(' + dx + " " + row * 234 + ')">' + flowCol(c, i) + "</g>";
+      }).join("");
+      return true;
+    }
+
+    function render() {
+      $$(".chip", root).forEach(function (b, i) { b.setAttribute("aria-pressed", String(!!keep[i])); });
+      $$("#hoodToks .tok").forEach(function (t, j) {
+        var e = TOKS[j][1];
+        t.className = "tok" + (e < 0 ? "" : keep[e] ? " k" : " d");
+        $("b", t).textContent = e >= 0 && !keep[e] ? "1" : "0";
+      });
+      $$("#hoodFlow .fc").forEach(function (c, j) {
+        var e = COLS[j][1], edit = typeof e === "number";
+        c.setAttribute("class", "fc " + (edit ? (keep[e] ? "keep" : "drop on") : e));
+      });
+      var m = keep.join("");
+      var img = $("#hoodOut");
+      img.src = smp.dir + (m === "000" ? "/b.webp" : "/subsets/" + m + ".webp");
+      var dropped = EDITS.filter(function (_, i) { return !keep[i]; }).map(function (x) { return x.toLowerCase(); });
+      var note = !dropped.length ? "every edit carried over"
+        : dropped.length === EDITS.length ? "every edit dropped: this is B"
+        : "drops " + dropped.join(" and ");
+      $("#hoodOutNote").textContent = note;
+      img.alt = "SIA's result, which " + note;
+    }
+
+    function init() {
+      $("#hoodA").src = smp.dir + "/a.webp";
+      $("#hoodAp").src = smp.dir + "/ap.webp";
+      $("#hoodB").src = smp.dir + "/b.webp";
+      $("#hoodSw").innerHTML = EDITS.map(function (e, i) {
+        return '<button class="chip" type="button" data-i="' + i + '" aria-pressed="true">' +
+          '<span class="dot"></span><span class="name">' + e + "</span></button>";
+      }).join("");
+      $$("#hoodSw .chip").forEach(function (b) {
+        b.addEventListener("click", function () { keep[+b.dataset.i] ^= 1; render(); });
+      });
+      $("#hoodToks").innerHTML = TOKS.map(function (t) {
+        return '<span class="tok"><span>' + esc(t[0]) + "</span><b>0</b></span>";
+      }).join("");
+      layFlow();
+      window.addEventListener("resize", function () { if (layFlow()) render(); });
+      /* every subset's result, ahead of the first click */
+      whenLoaded(function () {
+        smp.available.forEach(function (m) { fetchImage(smp.dir + "/subsets/" + m + ".webp", "low"); });
+      });
+      render();
+    }
+    return { init: init };
+  }());
+
+  /* ============================================================== csv */
+  /* Two small plots: the contrastive prompts' embeddings and the direction d
+     between their means; then the dropped token h, the part of it along d
+     that CSV removes (lambda times its projection), and what is left. The
+     slider sets lambda; it eases from 0 to 1 once when the panel shows. */
+  var csv = (function () {
+    var root = $("#csvp");
+    if (!root) return { init: function () {} };
+    var range = $("#csvL"), out = $("#csvLv");
+    var O = [100, 210], H = [60, -150], U = [0.832, -0.555];  /* origin, token h, unit d */
+    var dot = H[0] * U[0] + H[1] * U[1];
+    var C = [dot * U[0], dot * U[1]];                         /* h's component along d */
+
+    function line(id, a, b) {
+      var l = $("#" + id);
+      l.setAttribute("x1", a[0].toFixed(1)); l.setAttribute("y1", a[1].toFixed(1));
+      l.setAttribute("x2", b[0].toFixed(1)); l.setAttribute("y2", b[1].toFixed(1));
+    }
+    function label(id, at) {
+      var t = $("#" + id);
+      t.setAttribute("x", at[0].toFixed(1)); t.setAttribute("y", at[1].toFixed(1));
+    }
+    function draw(lam) {
+      var tip = [O[0] + H[0], O[1] + H[1]];
+      var cut = [O[0] + lam * C[0], O[1] + lam * C[1]];
+      var after = [tip[0] - lam * C[0], tip[1] - lam * C[1]];
+      line("csvH0", O, tip);
+      line("csvComp", O, cut);
+      line("csvH1", O, after);
+      line("csvProj", after, tip);
+      $("#csvComp").style.opacity = lam < 0.03 ? 0 : 1;
+      label("csvTh0", [tip[0] + 8, tip[1] + 2]);
+      label("csvTh1", [after[0] - 16, after[1] + 2]);
+      $("#csvTh1").style.opacity = lam < 0.15 ? 0 : 1;
+      out.textContent = lam.toFixed(2);
+    }
+    /* Plot 1, the averaging, looped while it is on screen: the means and the
+       arrow clear, a copy of every sample runs down a spoke into its
+       cluster's mean, which grows as they arrive, swells, and gets its label;
+       then the edit direction d draws from one mean to the other, and holds. */
+    var M = [[88, 190, "off"], [222, 82, "on"]], pts = [], meanEls = [];
+    function dots() {
+      /* fixed pseudo-random clusters around the two means */
+      var seed = 7;
+      function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280 - 0.5; }
+      var spokes = "", samples = "", ghosts = "", means = "";
+      M.forEach(function (c, k) {
+        for (var i = 0; i < 11; i++) {
+          var x = c[0] + rnd() * 58, y = c[1] + rnd() * 46, xy = ' cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '"';
+          pts.push({ x: x, y: y, k: k, i: i });
+          spokes += '<line class="sv-spoke ' + c[2] + '" x1="' + x.toFixed(1) + '" y1="' + y.toFixed(1) + '" x2="' + x.toFixed(1) + '" y2="' + y.toFixed(1) + '"/>';
+          samples += '<circle class="sv-pt ' + c[2] + '"' + xy + ' r="3.2"/>';
+          ghosts += '<circle class="sv-ghost ' + c[2] + '"' + xy + ' r="2.6" opacity="0"/>';
+        }
+        means += '<circle class="sv-mean ' + c[2] + '" cx="' + c[0] + '" cy="' + c[1] + '" r="7"/>';
+      });
+      var g = $("#csvDots");
+      g.innerHTML = '<g class="sv-spokes">' + spokes + "</g>" + samples + ghosts + means;
+      var sp = $$(".sv-spoke", g), gh = $$(".sv-ghost", g);
+      pts.forEach(function (p, j) { p.spoke = sp[j]; p.ghost = gh[j]; });
+      meanEls = $$(".sv-mean", g);
+    }
+    var T = 6.6;                              /* seconds per round */
+    function ease(t) { t = Math.min(1, Math.max(0, t)); return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+    function averaging(t) {                   /* t: seconds into the round */
+      var clear = ease(t / 0.5), arrived = [0, 0];
+      pts.forEach(function (p) {
+        var m = M[p.k], go = ease((t - 0.7 - p.i * 0.07) / 0.75);
+        var x = p.x + (m[0] - p.x) * go, y = p.y + (m[1] - p.y) * go;
+        var spoke = Math.min(ease((t - 0.6 - p.i * 0.07) / 0.4), 1 - ease((t - 2.9) / 0.6));
+        p.spoke.setAttribute("x2", x.toFixed(1)); p.spoke.setAttribute("y2", y.toFixed(1));
+        p.spoke.style.opacity = (0.5 * spoke).toFixed(2);
+        p.ghost.setAttribute("cx", x.toFixed(1)); p.ghost.setAttribute("cy", y.toFixed(1));
+        p.ghost.setAttribute("opacity", go > 0 && go < 1 ? 0.95 : 0);
+        if (go >= 1) arrived[p.k]++;
+      });
+      meanEls.forEach(function (el, k) {
+        var grown = t < 0.7 ? 7 * (1 - clear) : 2 + 5 * arrived[k] / 11;
+        var swell = Math.sin(Math.PI * ease((t - 2.05) / 0.7)) * 3;
+        el.setAttribute("r", Math.max(0, grown + swell).toFixed(2));
+      });
+      var labels = t < 0.7 ? 1 - clear : ease((t - 2.1) / 0.4);
+      $("#csvMon").style.opacity = $("#csvMoff").style.opacity = labels.toFixed(2);
+      var d = t < 0.7 ? 1 - clear : ease((t - 2.9) / 0.9), a = M[0], b = M[1];
+      var l = $("#csvD");
+      l.setAttribute("x2", (a[0] + (b[0] - a[0]) * Math.max(d, 0.001)).toFixed(1));
+      l.setAttribute("y2", (a[1] + (b[1] - a[1]) * Math.max(d, 0.001)).toFixed(1));
+      l.style.opacity = d < 0.02 ? 0 : 1;
+      $("#csvDl").style.opacity = (t < 0.7 ? 1 - clear : ease((t - 3.5) / 0.5)).toFixed(2);
+    }
+    function loop(target) {
+      var on = false, raf = 0, start = 0, base = 0;
+      function tick(now) {
+        averaging(((now - start) / 1000 + base) % T);
+        raf = requestAnimationFrame(tick);
+      }
+      function set(v) {
+        v = v && !document.hidden;
+        if (v === on) return;
+        on = v;
+        if (on) { start = performance.now(); raf = requestAnimationFrame(tick); }
+        else { cancelAnimationFrame(raf); base = 0; averaging(T - 0.01); }
+      }
+      var visible = false;
+      new IntersectionObserver(function (es) { visible = es[es.length - 1].isIntersecting; set(visible); },
+                               { threshold: 0.3 }).observe(target);
+      document.addEventListener("visibilitychange", function () { set(visible); });
+    }
+
+    function init() {
+      dots();
+      range.addEventListener("input", function () { draw(+range.value); });
+      var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduced || !("IntersectionObserver" in window)) { draw(1); return; }
+      loop($("#csvDots").ownerSVGElement);
+      draw(0); range.value = 0;
+      var io = new IntersectionObserver(function (es) {
+        if (!es[es.length - 1].isIntersecting) return;
+        io.disconnect();
+        var t0 = performance.now();
+        (function step(now) {
+          var t = Math.min(1, (now - t0) / 1400);
+          var v = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+          if (+range.dataset.touched) return;
+          range.value = v; draw(v);
+          if (t < 1) requestAnimationFrame(step);
+        })(t0);
+      }, { threshold: 0.5 });
+      io.observe($(".csvp-plots", root));
+      range.addEventListener("pointerdown", function () { range.dataset.touched = 1; });
+      range.addEventListener("keydown", function () { range.dataset.touched = 1; });
+    }
     return { init: init };
   }());
 
@@ -567,5 +1674,8 @@
   }());
 
   board.init();
-  cinema.init();
+  explorer.init();
+  tour.init();
+  hood.init();
+  csv.init();
 }());
