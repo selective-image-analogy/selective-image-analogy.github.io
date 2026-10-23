@@ -1,0 +1,40 @@
+# SIA: Selective Image Analogy
+
+> SIA (Selective Image Analogy) is a SIGGRAPH Asia 2026 paper on image analogy with control. Given one before/after demonstration pair (A, A') that contains several edits, and a new query image B, SIA lets the user choose which of those edits transfer to B. The pair stays fixed and no new pair is needed for each combination of edits.
+
+Project page: https://selective-image-analogy.github.io/
+
+Authors: Amir Alimohammadi (Simon Fraser University)\*, Kian Izadpanah (Simon Fraser University, University of Cyprus)\*, Bardiya Kariminia (Shahid Beheshti University), Yiorgos Chrysanthou (University of Cyprus, CYENS Centre of Excellence), Ali Mahdavi-Amiri (Simon Fraser University). \*Equal contribution.
+
+Venue: SIGGRAPH Asia 2026 Conference Papers (ACM).
+
+## Summary
+
+- Problem: classic and diffusion-based image analogy methods transfer every edit shown in a demonstration pair at once. When one pair holds several edits (for example a new background, a changed expression and an added logo), the user cannot ask for only some of them.
+- Approach: SIA first learns to transfer the whole change, then gains selective control from a token-level mask over the edit phrases in the analogy prompt.
+- The mask acts twice: a Concept Suppression Vector weakens the unwanted edit words in the text embedding, and the mask gates a small adapter (ExLoRA) to those words during generation, on top of an analogy adapter (AnaLoRA).
+- Backbone: FLUX.2-Klein in concat mode, 30 denoising steps.
+- Training data: multi-edit demonstration recipes (two to four edits) built from RelationAdapter data and synthetic FLUX.2-Klein edits, filtered with Qwen-VL.
+- Result: against visual analogy baselines (RelationAdapter, VisualCloze, Edit Transfer, LoRWeB), SIA leads on retained-edit accuracy (8.01/10 with Qwen3-VL-32B as judge, vs 7.24 for VisualCloze), retained-edit recall (0.892 vs 0.856) and both CLIP directional scores, with the strongest suppression of unwanted edits.
+
+Related topics: image analogy, image analogies, visual analogy, exemplar-based image editing, visual in-context learning, visual prompting, edit transfer, controllable and compositional image editing, diffusion models, LoRA.
+
+## Citation
+
+```bibtex
+@inproceedings{alimohammadi2026sia,
+  title     = {SIA: Selective Image Analogy},
+  author    = {Alimohammadi, Amir and Izadpanah, Kian and
+               Kariminia, Bardiya and Chrysanthou, Yiorgos and
+               Mahdavi-Amiri, Ali},
+  booktitle = {SIGGRAPH Asia 2026 Conference Papers},
+  year      = {2026},
+  publisher = {Association for Computing Machinery}
+}
+```
+
+## Links
+
+- Project page with interactive demo: https://selective-image-analogy.github.io/
+- Method video: https://www.youtube.com/watch?v=HU010YnVEwI
+- Code and issues: https://github.com/KianIzadpanah/selective-image-analogy

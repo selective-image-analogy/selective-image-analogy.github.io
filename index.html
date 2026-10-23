@@ -5,20 +5,128 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SIA: Selective Image Analogy &middot; SIGGRAPH Asia 2026</title>
 
-<meta name="description" content="Selective Image Analogy (SIA): a single before/after demonstration pair encodes several edits, and the user picks at inference time which of them transfer to a new query image. SIGGRAPH Asia 2026.">
+<meta name="description" content="SIA (Selective Image Analogy), SIGGRAPH Asia 2026: image analogy with control. From one before/after pair, choose which of its edits transfer to a new image.">
 <meta name="author" content="Amir Alimohammadi, Kian Izadpanah, Bardiya Kariminia, Yiorgos Chrysanthou, Ali Mahdavi-Amiri">
-<meta name="keywords" content="image analogy, selective image analogy, image editing, diffusion models, LoRA, concept suppression, SIGGRAPH Asia 2026">
+<meta name="keywords" content="image analogy, image analogies, selective image analogy, SIA, visual analogy, exemplar-based image editing, example-based image editing, visual in-context learning, visual prompting, edit transfer, controllable image editing, multi-edit image editing, diffusion models, FLUX, LoRA, concept suppression, SIGGRAPH Asia 2026">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 <link rel="canonical" href="https://selective-image-analogy.github.io/">
 
+<!-- Google Scholar / Zotero metadata (Highwire Press tags) -->
+<meta name="citation_title" content="SIA: Selective Image Analogy">
+<meta name="citation_author" content="Alimohammadi, Amir">
+<meta name="citation_author_institution" content="Simon Fraser University">
+<meta name="citation_author" content="Izadpanah, Kian">
+<meta name="citation_author_institution" content="Simon Fraser University">
+<meta name="citation_author_institution" content="University of Cyprus">
+<meta name="citation_author" content="Kariminia, Bardiya">
+<meta name="citation_author_institution" content="Shahid Beheshti University">
+<meta name="citation_author" content="Chrysanthou, Yiorgos">
+<meta name="citation_author_institution" content="University of Cyprus">
+<meta name="citation_author_institution" content="CYENS Centre of Excellence">
+<meta name="citation_author" content="Mahdavi-Amiri, Ali">
+<meta name="citation_author_institution" content="Simon Fraser University">
+<meta name="citation_conference_title" content="SIGGRAPH Asia 2026 Conference Papers">
+<meta name="citation_publisher" content="Association for Computing Machinery">
+<meta name="citation_publication_date" content="2026">
+<meta name="citation_abstract_html_url" content="https://selective-image-analogy.github.io/">
+
 <meta property="og:type" content="website">
-<meta property="og:title" content="SIA: Selective Image Analogy">
-<meta property="og:description" content="One before/after pair. You choose which of its edits carry over. SIGGRAPH Asia 2026.">
+<meta property="og:site_name" content="SIA: Selective Image Analogy">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="SIA: Selective Image Analogy (SIGGRAPH Asia 2026)">
+<meta property="og:description" content="Image analogy with control: one before/after pair, and you choose which of its edits carry over to a new image. SIGGRAPH Asia 2026.">
 <meta property="og:url" content="https://selective-image-analogy.github.io/">
 <meta property="og:image" content="https://selective-image-analogy.github.io/static/figures/teaser.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1570">
+<meta property="og:image:height" content="1029">
+<meta property="og:image:alt" content="Selective Image Analogy: a demonstration pair adds a logo, a happy expression and a new background; SIA applies any chosen subset of those edits to a new image.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="SIA: Selective Image Analogy">
-<meta name="twitter:description" content="One before/after pair. You choose which of its edits carry over. SIGGRAPH Asia 2026.">
+<meta name="twitter:title" content="SIA: Selective Image Analogy (SIGGRAPH Asia 2026)">
+<meta name="twitter:description" content="Image analogy with control: one before/after pair, and you choose which of its edits carry over to a new image. SIGGRAPH Asia 2026.">
 <meta name="twitter:image" content="https://selective-image-analogy.github.io/static/figures/teaser.jpg">
+<meta name="twitter:image:alt" content="Selective Image Analogy: a demonstration pair adds a logo, a happy expression and a new background; SIA applies any chosen subset of those edits to a new image.">
+
+<!-- Structured data for search engines and AI answer engines. Add "sameAs"
+     links (arXiv, code repo, DOI) here once they are public. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://selective-image-analogy.github.io/#website",
+      "url": "https://selective-image-analogy.github.io/",
+      "name": "SIA: Selective Image Analogy",
+      "alternateName": ["Selective Image Analogy", "SIA image analogy"],
+      "inLanguage": "en"
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "@id": "https://selective-image-analogy.github.io/#paper",
+      "headline": "SIA: Selective Image Analogy",
+      "name": "SIA: Selective Image Analogy",
+      "alternateName": "Selective Image Analogy",
+      "url": "https://selective-image-analogy.github.io/",
+      "mainEntityOfPage": "https://selective-image-analogy.github.io/",
+      "image": "https://selective-image-analogy.github.io/static/figures/teaser.jpg",
+      "datePublished": "2026",
+      "inLanguage": "en",
+      "isPartOf": { "@id": "https://selective-image-analogy.github.io/#website" },
+      "publisher": { "@type": "Organization", "name": "Association for Computing Machinery" },
+      "publication": {
+        "@type": "PublicationEvent",
+        "name": "SIGGRAPH Asia 2026"
+      },
+      "abstract": "Image analogy copies a change shown by a before/after pair (A, A') onto a new image B. But one pair usually holds several edits at once, and existing methods transfer all of them; you cannot ask for only some. We introduce Selective Image Analogy (SIA): the pair stays fixed, and you choose which of its edits to apply. SIA first learns to transfer the whole change, then gains control from a mask over the edit words. The mask acts twice: it weakens the unwanted words in the text embedding, and gates a small adapter to them while the image is generated. The unwanted edits are dropped and the chosen ones stay, even though every edit is still visible in A', and no new pair is needed for each combination.",
+      "keywords": "image analogy, selective image analogy, visual analogy, exemplar-based image editing, visual in-context learning, edit transfer, controllable image editing, diffusion models, FLUX.2, LoRA, concept suppression",
+      "about": [
+        { "@type": "Thing", "name": "Image analogy" },
+        { "@type": "Thing", "name": "Image editing" },
+        { "@type": "Thing", "name": "Diffusion model" }
+      ],
+      "author": [
+        {
+          "@type": "Person",
+          "name": "Amir Alimohammadi",
+          "url": "https://alimohammadiamirhossein.github.io/",
+          "affiliation": { "@type": "CollegeOrUniversity", "name": "Simon Fraser University" }
+        },
+        {
+          "@type": "Person",
+          "name": "Kian Izadpanah",
+          "url": "https://kianizadpanah.github.io",
+          "affiliation": [
+            { "@type": "CollegeOrUniversity", "name": "Simon Fraser University" },
+            { "@type": "CollegeOrUniversity", "name": "University of Cyprus" }
+          ]
+        },
+        {
+          "@type": "Person",
+          "name": "Bardiya Kariminia",
+          "url": "https://bardiya2254kariminia.github.io/",
+          "affiliation": { "@type": "CollegeOrUniversity", "name": "Shahid Beheshti University" }
+        },
+        {
+          "@type": "Person",
+          "name": "Yiorgos Chrysanthou",
+          "url": "https://www.cs.ucy.ac.cy/~yiorgos/",
+          "affiliation": [
+            { "@type": "CollegeOrUniversity", "name": "University of Cyprus" },
+            { "@type": "ResearchOrganization", "name": "CYENS Centre of Excellence" }
+          ]
+        },
+        {
+          "@type": "Person",
+          "name": "Ali Mahdavi-Amiri",
+          "url": "https://arash-mham.github.io/",
+          "affiliation": { "@type": "CollegeOrUniversity", "name": "Simon Fraser University" }
+        }
+      ]
+    }
+  ]
+}
+</script>
 
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="static/favicon-96.png" sizes="96x96" type="image/png">
