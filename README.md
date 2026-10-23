@@ -414,9 +414,10 @@ the old page can be turned off in that repo's Pages settings whenever you like.
    If it was accepted to the journal (TOG) track instead, switch it to
    `@article` with `journal = {ACM Transactions on Graphics}` plus volume,
    number and DOI.
-2. **arXiv and Code buttons** in the masthead are inert `<span class="btn
-   pending">` placeholders. Turn each back into an `<a href="...">` once the
-   preprint and the repo are public.
+2. **arXiv button** in the masthead is an inert `<span class="btn pending">`
+   placeholder. Turn it back into an `<a href="...">` once the preprint is
+   public. The Code button links to
+   `alimohammadiamirhossein/selective-image-analogy`.
 3. **The paper PDF** is still at `static/pdfs/SIA_paper.pdf` but nothing links
    to it. Add a button back to the masthead when it should be public.
 4. **Studio portrait** reads *combination n / 7* rather than 8 because

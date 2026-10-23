@@ -37,4 +37,4 @@ Related topics: image analogy, image analogies, visual analogy, exemplar-based i
 
 - Project page with interactive demo: https://selective-image-analogy.github.io/
 - Method video: https://www.youtube.com/watch?v=HU010YnVEwI
-- Code and issues: https://github.com/KianIzadpanah/selective-image-analogy
+- Official code and issues: https://github.com/alimohammadiamirhossein/selective-image-analogy
