@@ -62,45 +62,75 @@ def lite(im, dest, scale=1 / 3, q=50):
 # Switchboard tabs, in display order; the first is shown on load. `start` is
 # the switches' position when a tab opens (1 = edit on): every edit on where
 # that result was rendered.
+#
+# Every tab but Studio portrait is a Qwen-Image-2.1 port result (ExLoRA
+# checkpoint 5000, "reorder" prompt, seed 0): all_is_correct_qwen/<name> holds
+# A, A', B, every kept-edit subset (supp_*.png) and the all-edits-on render
+# (no_supp.png), scaled to 512 px tall; prompt.json names the benchmark case.
+# Each was checked tile by tile: every combination right by eye. The earlier
+# FLUX samples they replace (all_is_correct/1, 2, 4, 6, 7) stay in `new figures/`;
+# some of their combinations leaked a dropped edit or changed B's clothing.
 SAMPLES = [
-    dict(id="s4", src="all_is_correct/4", label="Dog", subject="creatures",
+    # Order: the 4-edit sample first, then the 3-edit ones, then the 2-edit ones.
+    # Portraits are spread out; the four "accessory + expression + background"
+    # portraits (crown, sunglasses, earrings, beard) are never next to each other.
+    # opens with the crown and the brushwork off: green hair on a Paris photo
+    dict(id="s1", src="all_is_correct_qwen/crown4", label="Paris portrait", subject="people",
+         title="Crown, green hair, Paris, brushwork", start="0110",
+         edits=[("add an open-top crown", "object"),
+                ("add green hair", "appearance"),
+                ("add a Paris background", "background"),
+                ("add Van Gogh style", "style")]),
+    dict(id="s4", src="all_is_correct_qwen/dog", label="Dog", subject="creatures",
          title="Red shirt, sitting, painted", start="111",
          edits=[("add a red T-shirt", "object"),
                 ("sitting pose", "pose"),
                 ("add a minimalist painting style", "style")]),
-    # older evaluation run, 3edits data13: every combination right by eye; A, A'
-    # and B are that run's data/3edits/data13, every result is SIA's own output
-    dict(id="s6", src="all_is_correct/6", label="Sunglasses portrait", subject="people",
-         title="Sunglasses, a sad face, wildflowers", start="111",
-         edits=[("add sunglasses", "object"),
-                ("sad expression", "expression"),
-                ("add a sunny wildflower meadow background", "background")]),
-    # scored run, 2edits data15: all three results right by eye and by the Qwen
-    # judge; A, A' and B are the older evaluation run's data/2edits/data15 (same
-    # prompt), every result is SIA's own output
-    dict(id="s7", src="all_is_correct/7", label="Lipstick portrait", subject="people",
-         title="Open eyes and purple lipstick", start="11",
-         edits=[("open the eyes", "expression"),
-                ("add purple lipstick", "appearance")]),
-    dict(id="s2", src="all_is_correct/2", label="Dragon", subject="creatures",
+    dict(id="s9", src="all_is_correct_qwen/crown_necklace", label="Crown portrait", subject="people",
+         title="Crown, gold necklace, angry face", start="111",
+         edits=[("add an open-top crown", "object"),
+                ("add a gold seamless necklace", "object"),
+                ("add an angry expression", "expression")]),
+    dict(id="s2", src="all_is_correct_qwen/dragon", label="Dragon", subject="creatures",
          title="Lava, open wings, gold scales", start="111",
          edits=[("add lava to the ground", "background"),
                 ("open the wings", "pose"),
                 ("add gold color", "appearance")]),
-    # no full transfer was rendered: opens with the smile and the mountains
-    dict(id="s3", src="all_is_correct/3", label="Studio portrait", subject="people",
-         title="Earrings, expression, mountains", start="011",
-         edits=[("add earrings", "object"),
-                ("happy expression", "expression"),
-                ("add a mountain and blue sky background", "background")]),
-    # opens with the style off: diadem, hair and lake carried over, unpainted
-    dict(id="s1", src="all_is_correct/1", label="Alley portrait", subject="people",
-         title="Diadem, hair, lake, brushwork", start="1110",
-         edits=[("add a celestial diadem", "object"),
-                ("add orange hair", "appearance"),
-                ("add a lake shore with reflections background", "background"),
-                ("add Van Gogh style", "style")]),
+    dict(id="s6", src="all_is_correct_qwen/sunglasses", label="Sunglasses portrait", subject="people",
+         title="Sunglasses, a sad face, a city plaza", start="111",
+         edits=[("add sunglasses", "object"),
+                ("sad expression", "expression"),
+                ("add an empty city plaza background", "background")]),
+    dict(id="s13", src="all_is_correct_qwen/lantern", label="Lantern", subject="objects",
+         title="A bench, a red light, oil paint", start="111",
+         edits=[("add a park metal bench", "object"),
+                ("turn the lamp light red", "appearance"),
+                ("add oil painting style", "style")]),
+    dict(id="s12", src="all_is_correct_qwen/earrings", label="Earrings portrait", subject="people",
+         title="Cluster earrings, a smile, a country road", start="111",
+         edits=[("add cluster earrings", "object"),
+                ("add a happy expression", "expression"),
+                ("add a peaceful countryside road background", "background")]),
+    dict(id="s11", src="all_is_correct_qwen/armor", label="Armor portrait", subject="people",
+         title="Armor, a beach hat, a modern kitchen", start="111",
+         edits=[("add armor", "object"),
+                ("add a beach hat", "object"),
+                ("add a modern apartment kitchen background", "background")]),
+    dict(id="s10", src="all_is_correct_qwen/beard", label="Beard portrait", subject="people",
+         title="A beard, surprise, a brick street", start="111",
+         edits=[("add a beard", "object"),
+                ("add a surprised expression", "expression"),
+                ("add a quiet residential street background", "background")]),
+    dict(id="s8", src="all_is_correct_qwen/mug", label="Floating mug", subject="objects",
+         title="Floating, in a comic style", start="11",
+         edits=[("floating pose", "pose"),
+                ("add a colored comic style", "style")]),
+    dict(id="s7", src="all_is_correct_qwen/clown", label="Clown portrait", subject="people",
+         title="Clown face and raised arms", start="11",
+         edits=[("looks like a clown", "appearance"),
+                ("raise arms behind the head", "pose")]),
 ]
+
 
 EXAMPLES = [
     dict(id="x1", src="some_is_correct/1", result="supp_e2_e3.png", subject="people",

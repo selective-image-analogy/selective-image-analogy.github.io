@@ -28,7 +28,7 @@ static/
                             PNGs beside it (32, 96, apple-touch 180) are renders of it
 new figures/                SOURCE — the authors' renders, figure PDFs and the
                             teaser's and pipeline figure's draw.io files
-tools/                      the four build scripts
+tools/                      the four build scripts, plus qwen_full_render.py (a record, not run by the build)
 ```
 
 Everything under `static/images`, `static/figures`, `static/pdfs` and
@@ -166,27 +166,37 @@ connection shows first).
 
 `build_images.py` reads `new figures/`:
 
-* `all_is_correct/<n>/` — one demonstration with **many** rendered subsets. It
-  drives the interactive *Results* switchboard. `no_supp.png` is the full
-  transfer; `supp_e1_e3.png` means edits 1 and 3 were suppressed. Filenames are
-  translated into keep-masks (`"0101"` = keep e2 and e4) and the metadata
-  asserts that each mask matches its declared edit list. The tabs, in
-  `SAMPLES` order: Dog (4: red T-shirt, sitting, painting style; inputs =
-  example x25, results from the scored run's data67; the demo opens on it),
-  Sunglasses portrait (6: sunglasses, sad expression, wildflower meadow; the
-  older evaluation run's 3edits data13, its inputs from that run's
-  `data/3edits/data13`, every result SIA's own output, all seven right),
-  Lipstick portrait (7: open the eyes, purple lipstick; the scored run's 2edits
-  data15, its inputs from the older evaluation run's `data/2edits/data15`, all
-  three results SIA's own and right), Dragon (2), Studio portrait (3) and
-  Alley portrait (1). `all_is_correct/5` (a pug: jumping, colored pencil) is kept
-  but not shown: its "pencil only" was never rendered cleanly (the scored run's
-  makes the pug jump).
+* `all_is_correct/<n>/` and `all_is_correct_qwen/<name>/` — one demonstration
+  with **many** rendered subsets. They drive the interactive *Results*
+  switchboard. `no_supp.png` is the full transfer; `supp_e1_e3.png` means edits 1
+  and 3 were suppressed. Filenames are translated into keep-masks (`"0101"` =
+  keep e2 and e4) and the metadata asserts that each mask matches its declared
+  edit list. The tabs, in `SAMPLES` order (the 4-edit sample first, then the
+  3-edit ones, then the 2-edit ones; portraits are spread out and the four
+  "accessory + expression + background" ones are never adjacent): Paris
+  portrait, Dog, Crown portrait, Dragon, Sunglasses portrait, Lantern, Earrings
+  portrait, Armor portrait, Beard portrait, Floating mug and Clown portrait.
+  All are **Qwen-Image-2.1 port results** (ExLoRA checkpoint 5000,
+  `--reorder`, seed 0) kept under `all_is_correct_qwen/<name>/`:
+  `prompt.json` there names the benchmark case (`analogy_benchmark` split of
+  `Amirhossein-Alimohammadi/SIA-Multi-Edit-Analogy`). The benchmark run covers
+  every proper subset of a case's edits; the all-edits-on render
+  (`no_supp.png`) was added afterwards with the same checkpoint and settings
+  (`tools/qwen_full_render.py`), and all images were scaled to 512 px tall (the
+  build crops anything taller). Every combination of every Qwen tab was checked
+  tile by tile (all-on and every subset): kept edits visible, dropped edits
+  absent, B's identity and clothing unchanged. The FLUX samples they replaced
+  (`all_is_correct/1, 2, 3, 4, 6, 7`) stay in `new figures/`: they leaked dropped
+  edits in some combinations (Alley portrait turned the jacket brown in every
+  styled tile; the golden-dog sample smeared its sitting pose; Lipstick portrait
+  changed the face). `all_is_correct/5` (a pug: jumping, colored pencil) is kept
+  but not shown: its "pencil only" was never rendered cleanly.
+  The old FLUX *Studio portrait* (`all_is_correct/3`) was dropped: it never had
+  a full-transfer render, and the Qwen Earrings portrait covers the same edits.
   Each has a `start`, the switches' position when its tab opens: every edit on,
-  except Studio portrait (no full transfer was rendered, so smile and mountains
-  on, earrings off) and Alley portrait (style off, to open on a selective
-  result). The build asserts that each start was rendered. A combination with
-  no render (Studio portrait's full transfer) can still be switched to: the
+  except Paris portrait (crown and style off, to open on a selective result:
+  green hair on a Paris photo). The build asserts that each start was rendered.
+  A combination with no render can still be switched to: the
   result then shows the closest rendered combination, with a note under the
   switches saying which edit differs. Every
   image has a light copy under `lite/` (⅓ size, ~3 KB), which its frame shows
@@ -255,7 +265,7 @@ The **Method** section has five parts:
   a step zooms into its part instead: the stage takes the part's shape and the
   figure is scaled to fill its width (2.2–4.5×, `.lens`), and tapping the part
   again zooms back out.
-* **Under the hood** (`#hood`). The dragon sample (`s2`) with its three
+* **Under the hood** (`#hood`). The dragon sample (`s2`, now the Qwen red dragon) with its three
   edits as switches. Switching one off marks its prompt tokens 1 in the mask,
   forks those tokens through the ExLoRA hourglass (a soft low-rank glyph) in the attention-layer diagram
   (drawn after SliderEdit's selective-token figure: every column goes through
@@ -420,9 +430,7 @@ the old page can be turned off in that repo's Pages settings whenever you like.
    `alimohammadiamirhossein/selective-image-analogy`.
 3. **The paper PDF** is still at `static/pdfs/SIA_paper.pdf` but nothing links
    to it. Add a button back to the masthead when it should be public.
-4. **Studio portrait** reads *combination n / 7* rather than 8 because
-   `all_is_correct/3` has no `no_supp.png`. Render it and the build picks it
-   up. The pug (`all_is_correct/5`) could come back as a tab once it has a
+4. **Pug.** The pug (`all_is_correct/5`) could come back as a tab once it has a
    clean `supp_e1.png` ("pencil only").
 5. **Video.** The *Video* section plays the YouTube method video
    (`HU010YnVEwI`). To swap it, change `data-yt` on the `.yt` element in
