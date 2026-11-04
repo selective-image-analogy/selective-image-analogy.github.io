@@ -132,12 +132,24 @@ neither layer loads, the page shows the still `teaser.svg` (or its dark twin).
 subjects from `static/js/data.js`), so run it after `build_images.py`. It
 writes two images, keeping results that share a query subject from touching or
 crowding the wall, and leading with the objects, animals and scenes: portraits
-are capped (14 of the still wall's 45 tiles, 5 per column of the moving one),
+are about 45% of the still wall's 45 tiles (20) and 7 of each 16-tile column of the moving one,
 while an animal or object may show up to 6 of its distinct results. Each column
 of the moving wall loops through 16 tiles (it was 8), so a picture comes round
 again half as often; `app.js` runs it at 220 s a loop, the same speed as the old
 8-tile loop at 110 s, and a family recurs within a column only 5 or more rows
-apart. Besides the gallery and demo results it uses a few wall-only Qwen results of
+apart. A last pass (`refine_static`, `refine_motion`, simulated annealing) also
+tags what is *in* each result (crown, sunglasses, beard, armor, hat, a pencil or
+paint style, lava, a sitting pose, ...), from the edits it keeps, and moves tiles
+so that ones which can be on screen together share as few tags as possible (an
+accessory counts most); it also caps how many of the 144 slots one subject can fill
+(`THEME_CAPS`: every dog together, every dragon, car, fruit, lamp and mug; a
+person at most 5) and shows each picture at most twice (lamp pictures once). Only
+63 objects/animals pictures exist for 81 such slots, so those caps cannot go much
+lower without more renders. A nearly identical picture of one object or animal
+(a subtle edit of the same scene) counts as a duplicate when placing tiles.
+`simulate` walks the whole drift (about 7 columns x 4 rows on screen, as on a
+1500 x 1000 screen) and prints the most tiles of one subject on screen at once
+(dragons 2, cars 3, dogs 7 at the last build) and whether any picture shows twice. Besides the gallery and demo results it uses a few wall-only Qwen results of
 other query images (`new figures/wall_extra/<family>/`: a melon, a table lamp,
 a German shepherd, two SUVs, a pottery table, a blue dragon) to keep enough
 non-portrait variety. Results
