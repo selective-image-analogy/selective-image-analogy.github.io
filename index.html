@@ -252,9 +252,13 @@
       one at a time or together, and watch the result change. The demonstration pair never changes, only the
       result. Every image here is a real SIA output.</p>
 
-    <div class="strip" id="strip" role="tablist" aria-label="Choose a demonstration"></div>
+    <div class="stripbox">
+      <div class="strip" id="strip" role="tablist" aria-label="Choose a demonstration"></div>
+      <button class="rail-btn" type="button" data-dir="-1" tabindex="-1" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3 4.5 7l4 4"/></svg></button>
+      <button class="rail-btn" type="button" data-dir="1" tabindex="-1" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3l4 4-4 4"/></svg></button>
+    </div>
 
-    <div class="board" id="board">
+    <div class="board" id="board" role="tabpanel">
       <!-- A -> A' :: B -> B', one row -->
       <div class="boardrow">
         <div class="bgroup">

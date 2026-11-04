@@ -600,12 +600,26 @@ figcaption b{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* -------------------------------------------------------- sample strip */
-.strip{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+/* One row of tabs, grouped by their number of edits under small labels (the
+   order: most edits first). Where the row is too long for the screen it
+   slides sideways, with a fade and an arrow at each end that hides tabs
+   (app.js: railArrows). */
+.stripbox{position:relative;margin-bottom:16px;--fl:0px;--fr:0px}
+.stripbox.over:not(.at-start){--fl:56px}
+.stripbox.over:not(.at-end){--fr:56px}
+.stripbox .strip{
+  display:flex;align-items:flex-end;gap:16px;
+  overflow-x:auto;scrollbar-width:none;padding:2px 1px;scroll-padding-inline:48px;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 var(--fl),#000 calc(100% - var(--fr)),transparent);
+  mask-image:linear-gradient(90deg,transparent 0,#000 var(--fl),#000 calc(100% - var(--fr)),transparent);
+}
+.stripbox .strip::-webkit-scrollbar{display:none}
+.sg-tabs{flex:0 0 auto;display:flex;gap:6px}
 .strip button{
-  display:flex;align-items:center;gap:10px;
-  padding:5px 14px 5px 5px;border-radius:var(--radius-sm);cursor:pointer;
+  position:relative;flex:0 0 auto;display:flex;align-items:center;gap:8px;
+  padding:4px 12px 4px 4px;border-radius:var(--radius-sm);cursor:pointer;
   border:1px solid var(--rule);background:var(--surface);color:var(--muted);
-  font-family:var(--sans);font-size:14px;font-weight:500;
+  font-family:var(--sans);font-size:14px;font-weight:500;white-space:nowrap;
   transition:background-color .16s,border-color .16s,color .16s;
 }
 .strip button:hover{border-color:var(--rule-strong);color:var(--ink)}
@@ -613,17 +627,23 @@ figcaption b{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--
   border-color:var(--accent);color:var(--ink);background:var(--accent-soft);
 }
 .strip button img{
-  width:30px;height:30px;border-radius:5px;object-fit:cover;
+  width:28px;height:28px;border-radius:5px;object-fit:cover;
   background:var(--img-bg);flex:0 0 auto;
 }
-.strip button .n{
-  font-family:var(--mono);font-size:11px;opacity:.7;
-  padding-left:10px;margin-left:2px;border-left:1px solid var(--rule-strong);
+.strip button:focus-visible{outline-offset:-2px}
+.strip button .n{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.rail-btn{
+  display:none;position:absolute;bottom:5px;z-index:2;
+  width:28px;height:28px;border-radius:50%;cursor:pointer;place-items:center;
+  border:1px solid var(--rule-strong);background:var(--surface);color:var(--ink);
+  box-shadow:0 2px 8px rgba(0,0,0,.18);transition:opacity .16s;
 }
-/* (app.js: when the tabs would wrap, their counts go and they pack closer) */
-.strip.tight{gap:6px}
-.strip.tight button{padding-right:12px}
-.strip.tight button .n{display:none}
+.rail-btn:hover{border-color:var(--accent)}
+.rail-btn[data-dir="-1"]{left:0}
+.rail-btn[data-dir="1"]{right:0}
+.stripbox.over .rail-btn{display:grid}
+.stripbox.at-start .rail-btn[data-dir="-1"],
+.stripbox.at-end .rail-btn[data-dir="1"]{opacity:0;pointer-events:none}
 
 /* ---------------------------------------------------------- switchboard */
 .board{
@@ -1429,9 +1449,6 @@ footer a{color:var(--muted)}
   .lightbox{padding:64px 14px 28px}
   .bib{padding-top:54px}
 }
-@media (max-width:420px){
-  .strip button .n{display:none}
-}
 
 /* ------------------------------------------------- phones and touch */
 /* The section links scroll sideways on a phone (see the nav); their ends
@@ -1466,14 +1483,11 @@ footer a{color:var(--muted)}
    how-to gives way, warnings stay, short). */
 .hint-short{display:none}
 @media (max-width:760px){
-  .strip{
-    flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
-    margin:0 -20px 12px;padding:0 20px 2px;
-    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 18px,#000 calc(100% - 28px),transparent);
-    mask-image:linear-gradient(90deg,transparent 0,#000 18px,#000 calc(100% - 28px),transparent);
-  }
-  .strip::-webkit-scrollbar{display:none}
-  .strip button{flex:0 0 auto}
+  .stripbox{margin:0 -20px 12px}
+  .stripbox.over:not(.at-start){--fl:24px}
+  .stripbox.over:not(.at-end){--fr:32px}
+  .stripbox .strip{gap:14px;padding:2px 20px;scroll-padding-inline:20px}
+  .rail-btn,.stripbox.over .rail-btn{display:none}
   .board{
     padding:12px;gap:10px;
     --qh:clamp(140px,calc(100vh - var(--nav-h) - 12px - var(--fixed,420px)),360px);
@@ -1591,7 +1605,7 @@ footer a{color:var(--muted)}
 }
 
 @media print{
-  .nav,.themebtn,.strip,.ex-progress,.ex-tools,.stepper,.zoomhint,.lightbox,.skip{
+  .nav,.themebtn,.strip,.stripbox,.ex-progress,.ex-tools,.stepper,.zoomhint,.lightbox,.skip{
     display:none!important;
   }
   body{font-size:11pt;background:#fff;color:#000}

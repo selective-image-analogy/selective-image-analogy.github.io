@@ -637,46 +637,82 @@
       });
     }
 
+    /* One tab: its label without " portrait" (the face in its thumbnail
+       says it; screen readers still hear it), and its number of edits. */
+    function tabHTML(s) {
+      var short = s.label.replace(/ portrait$/, "");
+      return '<button role="tab" type="button" id="tab-' + s.id + '" data-id="' + s.id + '"' +
+        ' aria-controls="board" aria-selected="false" tabindex="-1" title="' + esc(s.title) + '">' +
+        '<img src="' + s.dir + '/thumb.webp" alt="" aria-hidden="true">' +
+        '<span class="lb">' + esc(short) +
+        (short !== s.label ? '<span class="visually-hidden"> portrait</span>' : '') + '</span>' +
+        '<span class="n"><span class="visually-hidden">, </span>' + s.edits.length + ' edits</span></button>';
+    }
+
+    /* The tabs are built once; choosing one only moves the selection. Arrow
+       keys, Home and End move between them (and choose), as in any tablist. */
     function buildStrip() {
       var el = $("#strip");
-      el.innerHTML = SAMPLES.map(function (s) {
-        return '<button role="tab" type="button" data-id="' + s.id + '"' +
-          ' aria-selected="' + (s.id === cur.id) + '" title="' + esc(s.title) + '">' +
-          '<img src="' + s.dir + '/thumb.webp" alt="" aria-hidden="true">' +
-          esc(s.label) + '<span class="n">' + s.edits.length + ' edits</span></button>';
-      }).join("");
-      /* on a phone the tabs slide sideways: keep the chosen one in view */
-      var on = $('[aria-selected="true"]', el);
-      if (on && el.scrollWidth > el.clientWidth) {
+      /* one flat row of tabs, in the order of SAMPLES */
+      el.innerHTML = '<div class="sg-tabs" role="presentation">' +
+        SAMPLES.map(tabHTML).join("") + '</div>';
+      $$('[role="tab"]', el).forEach(function (b) {
+        b.addEventListener("click", function () { choose(b.dataset.id); });
+      });
+      el.addEventListener("keydown", function (e) {
+        var bs = $$('[role="tab"]', el), i = bs.indexOf(document.activeElement), j;
+        if (i < 0 || e.altKey || e.ctrlKey || e.metaKey) return;
+        if (e.key === "ArrowRight") j = (i + 1) % bs.length;
+        else if (e.key === "ArrowLeft") j = (i - 1 + bs.length) % bs.length;
+        else if (e.key === "Home") j = 0;
+        else if (e.key === "End") j = bs.length - 1;
+        else return;
+        e.preventDefault();
+        bs[j].focus();
+        choose(bs[j].dataset.id);
+      });
+      markStrip();
+    }
+
+    function markStrip() {
+      var el = $("#strip"), on = null;
+      $$('[role="tab"]', el).forEach(function (b) {
+        var yes = b.dataset.id === cur.id;
+        b.setAttribute("aria-selected", yes);
+        b.tabIndex = yes ? 0 : -1;
+        if (yes) on = b;
+      });
+      $("#board").setAttribute("aria-labelledby", on.id);
+      /* where the tabs slide sideways: keep the chosen one in view */
+      if (el.scrollWidth > el.clientWidth + 1) {
         var br = on.getBoundingClientRect(), sr = el.getBoundingClientRect();
         el.scrollTo({ left: el.scrollLeft + br.left - sr.left - (el.clientWidth - br.width) / 2,
                       behavior: el.dataset.built ? "smooth" : "auto" });
       }
       el.dataset.built = "1";
-      tighten();
-      $$("button", el).forEach(function (b) {
-        b.addEventListener("click", function () {
-          var next = SAMPLES.filter(function (s) { return s.id === b.dataset.id; })[0];
-          if (!next || next.id === cur.id) return;
-          cur = next;
-          mask = defaultMask(cur);
-          moved = -1;
-          buildStrip();
-          buildChips();
-          renderInputs();
-          render();
-          preload(cur);
-        });
-      });
     }
 
-    /* The tabs keep to one row where they can: when they would wrap, their
-       "n edits" counts give way (the switches' heading says it anyway). */
-    function tighten() {
-      var el = $("#strip"), bs = $$("button", el);
-      el.classList.remove("tight");
-      if (bs.length && bs[bs.length - 1].offsetTop > bs[0].offsetTop) el.classList.add("tight");
+    function choose(id) {
+      var next = SAMPLES.filter(function (s) { return s.id === id; })[0];
+      if (!next || next.id === cur.id) return;
+      cur = next;
+      mask = defaultMask(cur);
+      moved = -1;
+      markStrip();
+      buildChips();
+      renderInputs();
+      render();
+      preload(cur);
     }
+
+    /* the rail's arrows: shown only while the tabs overflow, each dimmed at its end */
+    function railArrows() {
+      var el = $("#strip"), box = el.parentNode, max = el.scrollWidth - el.clientWidth;
+      box.classList.toggle("over", max > 1);
+      box.classList.toggle("at-start", el.scrollLeft <= 1);
+      box.classList.toggle("at-end", el.scrollLeft >= max - 1);
+    }
+    function tighten() { railArrows(); }
 
     function buildChips() {
       $("#boardTitle").textContent = cur.edits.length + " demonstrated edits";
@@ -856,6 +892,13 @@
       mask = defaultMask(cur);
       var first = cur;
       buildStrip();
+      $("#strip").addEventListener("scroll", railArrows, { passive: true });
+      $$(".rail-btn").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var el = $("#strip");
+          el.scrollBy({ left: +b.dataset.dir * el.clientWidth * 0.8, behavior: "smooth" });
+        });
+      });
       buildChips();
       renderInputs();
       render();
