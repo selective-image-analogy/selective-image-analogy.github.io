@@ -345,9 +345,9 @@ a:hover{color:var(--accent);text-decoration-color:currentColor}
   position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;
   /* the wall's drawn width: 1.369 is wall.webp's aspect, and the 118% leaves
      room for the tilt. --wh is the height of one loop of wall-motion.webp
-     (4544 / 1944 of its width). */
+     (5344 / 2286 of its width). */
   --ww:max(118vw,calc(118vh * 1.369));
-  --wh:calc(var(--ww) * 2.3374);
+  --wh:calc(var(--ww) * 2.3377);
 }
 .wall img{
   position:absolute;left:50%;top:50%;max-width:none;height:auto;

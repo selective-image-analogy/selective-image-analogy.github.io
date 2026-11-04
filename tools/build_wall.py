@@ -32,8 +32,8 @@ IMG = os.path.join(ROOT, "static", "images")
 FIG = os.path.join(ROOT, "static", "figures")
 
 COLS = 9
-TILE_W, TILE_H = 204, 272          # 3:4, the shape of every result crop
-GAP, RADIUS = 12, 10
+TILE_W, TILE_H = 240, 320          # 3:4, the shape of every result crop
+GAP, RADIUS = 14, 12
 SEED = 7
 
 STATIC_ROWS = 5                    # about what the tilted masthead shows
