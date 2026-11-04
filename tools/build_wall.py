@@ -6,7 +6,7 @@ outputs with rounded corners on a transparent ground, so the page colour shows
 through the gaps in either theme. The page tilts and dims them in CSS.
 
   static/figures/wall.webp         9 x 5, the still wall
-  static/figures/wall-motion.webp  9 x 8, the drifting wall; each column loops
+  static/figures/wall-motion.webp  9 x 16, the drifting wall; each column loops
                                    vertically, so the page can scroll the
                                    columns past one another
 
@@ -32,8 +32,8 @@ IMG = os.path.join(ROOT, "static", "images")
 FIG = os.path.join(ROOT, "static", "figures")
 
 COLS = 9
-TILE_W, TILE_H = 240, 320          # 3:4, the shape of every result crop
-GAP, RADIUS = 14, 12
+TILE_W, TILE_H = 204, 272          # 3:4, the shape of every result crop
+GAP, RADIUS = 12, 10
 SEED = 7
 
 STATIC_ROWS = 5                    # about what the tilted masthead shows
@@ -41,7 +41,9 @@ STATIC_PER_SAMPLE = 7              # subsets taken from each switchboard sample
 STATIC_PER_SUBJECT = 3             # tiles of any one portrait subject; an animal
 STATIC_PER_THING = 6               # or object may show more of its (distinct) results
 
-MOTION_ROWS = 8                    # tiles in each column's loop
+MOTION_ROWS = 16                   # tiles in each column's loop (the longer, the later a
+                                   # picture comes round again)
+MOTION_FAMILY_GAP = 5              # rows between two tiles of one family in a column
 MOTION_PER_SAMPLE = 8
 
 # The light copies: (fraction of the full size, webp quality). The still one
@@ -52,21 +54,26 @@ MOTION_LITE = (1 / 3, 40)          # ~100 KB
 
 # The wall leads with the objects, animals and scenes; portraits are capped
 # so faces don't dominate the masthead.
+STATIC_FACES_PER_ROW = 3           # portraits in one row of the still wall
+STATIC_FACES_PER_COL = 2           # and in one column
 STATIC_PEOPLE = 14                 # of the static wall's 45 tiles (about 30 %)
-MOTION_PEOPLE_PER_COL = 3          # of each column's 8: neighbouring columns
+MOTION_PEOPLE_PER_COL = 5          # of each column's 16: neighbouring columns
                                    # share no family, and there are only 11
                                    # families of objects and animals
 
 # Different query images that look alike on the wall: one family each, kept
 # apart like results of the same query (ids from build_images.py).
 FAMILIES = {
-    "silver car": ["x3", "x51", "x71", "x72", "x74"],
-    "dog in a field": ["x4", "x57", "x64"],
-    "dragon": ["x59", "x76", "x77", "s2"],
-    "pineapple": ["x53", "x70"],
-    "apple": ["x2", "x67", "x68"],
+    "silver car": ["x3", "x51", "x74"],
+    "dog in a field": ["x4"],
+    "collie": ["x84", "s4"],
+    "dragon": ["x59", "x77"],
+    "red dragon": ["s2"],
+    "apple": ["x2", "x68"],
+    "pineapple": ["x70"],
+    "mug": ["x86", "s8"],
+    "crown and scowl": ["x87", "s9"],
     "man in an alley": ["x58", "s1"],
-    "woman with a bun": ["x27", "s3"],
     "man on a street": ["x1", "x47"],
 }
 FAMILY_OF = {i: f for f, ids in FAMILIES.items() for i in ids}
@@ -106,6 +113,11 @@ def collect(per_sample):
         # the fullest transfers first: they differ most from the query
         subs.sort(key=lambda p: (-os.path.basename(p).count("1"), p))
         tiles += [(p, key, people) for p in subs[:per_sample]]
+    # wall-only results of other query images (new figures/wall_extra/<family>/*.png):
+    # extra objects and animals, so the denser wall has enough non-portrait variety
+    for d in sorted(glob.glob(os.path.join(ROOT, "new figures", "wall_extra", "*", ""))):
+        fam = "extra:" + os.path.basename(os.path.dirname(d))
+        tiles += [(p, fam, False) for p in sorted(glob.glob(os.path.join(d, "*.png")))]
     return tiles
 
 
@@ -138,7 +150,7 @@ def arrange_static(tiles, rng, tries=3000):
             fits = [t for t in pool if t[1] not in near
                     and seen.get(t[1], 0) < cap[t[1]]
                     and t[0] not in (g[0] for g in grid)
-                    and not (t[2] and (faces >= STATIC_PEOPLE or row_faces >= 3 or col_faces >= 2))]
+                    and not (t[2] and (faces >= STATIC_PEOPLE or row_faces >= STATIC_FACES_PER_ROW or col_faces >= STATIC_FACES_PER_COL))]
             # weighted by the tiles each subject still has to place, so the
             # big ones are spread out rather than stranded at the end
             pick = None
@@ -161,8 +173,8 @@ def arrange_motion(tiles, rng, tries=200):
     """Column by column. Neighbouring columns slide past each other, so any
     tile meets every tile of the columns beside it: they share no family. The
     columns two apart move in step (app.js gives all one pace), so there a
-    family may recur only three or more rows away. Within a column no family
-    shows twice. Each column holds
+    family may recur only three or more rows away. Within a column a family
+    recurs only MOTION_FAMILY_GAP or more rows apart. Each column holds
     MOTION_PEOPLE_PER_COL portraits at rows that don't touch (counting the
     wrap from the last tile back to the first); over the whole wall an image
     shows at most three times (so never in neighbouring columns), the less
@@ -189,7 +201,8 @@ def arrange_motion(tiles, rng, tries=200):
             n = lambda t: used.get(t[0], 0) + taken.get(t[0], 0)
             cand = [t for t in (people if r in faces else things)
                     if n(t) < 3 and t[1] not in beside and t[1] not in over and t[0] != twin
-                    and all(t[1] != u[1] for u in col)]
+                    and all(t[1] != u[1] or min(r - i, MOTION_ROWS - (r - i)) >= MOTION_FAMILY_GAP
+                            for i, u in enumerate(col))]
             if not cand:
                 return None
             pick = rng.choices(cand, weights=[(3 - n(t)) ** 2 for t in cand])[0]

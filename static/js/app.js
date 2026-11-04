@@ -132,7 +132,7 @@
     var lite = host && $("img", host);
     if (!host || !lite) return;
 
-    var V = "?v=4";   /* bump when build_wall.py reruns (also in index.html and style.css) */
+    var V = "?v=5";   /* bump when build_wall.py reruns (also in index.html and style.css) */
     var STILL = "static/figures/wall.webp" + V;
     var MOTION = "static/figures/wall-motion.webp" + V;
     var MOTION_LITE = "static/figures/wall-motion-lite.webp" + V;
@@ -204,7 +204,7 @@
         /* one pace for all, alternately up and down: columns moving the same
            way stay in step, which build_wall.py relies on to keep a result
            away from its look-alikes two columns over */
-        html += '<div class="col"><div class="strip" style="--i:' + i + ';--dur:110s;--delay:0s"></div></div>';
+        html += '<div class="col"><div class="strip" style="--i:' + i + ';--dur:220s;--delay:0s"></div></div>';
       }
       var layer = document.createElement("div");
       layer.className = "wall-motion";

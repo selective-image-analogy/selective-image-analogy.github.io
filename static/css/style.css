@@ -345,9 +345,9 @@ a:hover{color:var(--accent);text-decoration-color:currentColor}
   position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;
   /* the wall's drawn width: 1.369 is wall.webp's aspect, and the 118% leaves
      room for the tilt. --wh is the height of one loop of wall-motion.webp
-     (2672 / 2286 of its width). */
+     (4544 / 1944 of its width). */
   --ww:max(118vw,calc(118vh * 1.369));
-  --wh:calc(var(--ww) * 1.1689);
+  --wh:calc(var(--ww) * 2.3374);
 }
 .wall img{
   position:absolute;left:50%;top:50%;max-width:none;height:auto;
@@ -377,16 +377,16 @@ a:hover{color:var(--accent);text-decoration-color:currentColor}
 .wall-motion .col{position:relative;flex:1 1 0;min-width:0;overflow:hidden}
 .wall-motion .strip{
   position:absolute;left:0;top:0;width:100%;height:calc(100% + var(--wh));
-  background:url("../figures/wall-motion-lite.webp?v=4") repeat-y;
+  background:url("../figures/wall-motion-lite.webp?v=5") repeat-y;
   background-size:var(--ww) var(--wh);
   background-position-x:calc(var(--i) * var(--ww) / -9);
   animation:wall-up var(--dur) linear var(--delay) infinite;
   will-change:transform;
 }
 .wall-motion.sharp .strip{
-  background-image:url("../figures/wall-motion.webp?v=4"),url("../figures/wall-motion-lite.webp?v=4");
+  background-image:url("../figures/wall-motion.webp?v=5"),url("../figures/wall-motion-lite.webp?v=5");
 }
-.wall-motion.settled .strip{background-image:url("../figures/wall-motion.webp?v=4")}
+.wall-motion.settled .strip{background-image:url("../figures/wall-motion.webp?v=5")}
 .wall-motion .col:nth-child(even) .strip{animation-name:wall-down}
 .wall.paused .strip{animation-play-state:paused}
 @keyframes wall-up{to{transform:translateY(calc(-1 * var(--wh)))}}

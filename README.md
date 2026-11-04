@@ -132,8 +132,15 @@ neither layer loads, the page shows the still `teaser.svg` (or its dark twin).
 subjects from `static/js/data.js`), so run it after `build_images.py`. It
 writes two images, keeping results that share a query subject from touching or
 crowding the wall, and leading with the objects, animals and scenes: portraits
-are capped (14 of the still wall's 45 tiles, 3 per column of the moving one),
-while an animal or object may show up to 6 of its distinct results. Results
+are capped (14 of the still wall's 45 tiles, 5 per column of the moving one),
+while an animal or object may show up to 6 of its distinct results. Each column
+of the moving wall loops through 16 tiles (it was 8), so a picture comes round
+again half as often; `app.js` runs it at 220 s a loop, the same speed as the old
+8-tile loop at 110 s, and a family recurs within a column only 5 or more rows
+apart. Besides the gallery and demo results it uses a few wall-only Qwen results of
+other query images (`new figures/wall_extra/<family>/`: a melon, a table lamp,
+a German shepherd, two SUVs, a pottery table, a blue dragon) to keep enough
+non-portrait variety. Results
 are spaced by *family*: their query image, or a `FAMILIES` group of queries
 that look alike (the silver cars, the dog in a field, the dragons, ...). On the
 still wall a family never touches itself, diagonals included. On the moving
@@ -143,11 +150,11 @@ family recurs there only three or more rows away. After a rebuild, bump the
 `?v=` on the wall URLs (`index.html`, `style.css`, `app.js`) so browsers
 fetch the new images:
 
-* `wall.webp` (~550 KB, 9 × 5 tiles) — the still wall.
-* `wall-motion.webp` (~790 KB, 9 × 8 tiles) — a taller grid whose columns loop
+* `wall.webp` (~340 KB, 9 × 5 tiles) — the still wall.
+* `wall-motion.webp` (~1.1 MB, 9 × 16 tiles) — a taller grid whose columns loop
   seamlessly, for the drifting wall: columns slide alternately up and down at
   one pace, and pause while the masthead is scrolled away.
-* `wall-lite.webp` (~45 KB, ¼ size) and `wall-motion-lite.webp` (~100 KB,
+* `wall-lite.webp` (~35 KB, ¼ size) and `wall-motion-lite.webp` (~150 KB,
   ⅓ size) — light copies of the two (`STATIC_LITE`, `MOTION_LITE`), so that a
   weak connection gets a wall, and a moving one, without waiting.
 
