@@ -160,7 +160,7 @@ window.SIA_SAMPLES = [
   {
     "id": "s6",
     "label": "Sunglasses portrait",
-    "title": "Sunglasses, a sad face, a city plaza",
+    "title": "Sunglasses, a sad face, a festival street",
     "subject": "people",
     "start": "111",
     "w": 398,
@@ -179,7 +179,7 @@ window.SIA_SAMPLES = [
       },
       {
         "id": "e3",
-        "label": "add an empty city plaza background",
+        "label": "add an empty Japanese festival street background",
         "type": "background"
       }
     ],
