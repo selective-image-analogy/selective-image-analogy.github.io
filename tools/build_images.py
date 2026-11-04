@@ -533,6 +533,46 @@ EXAMPLES = [
          edits=[("add a red T-shirt", "object", 1),
                 ("sitting pose", "pose", 0),
                 ("add a minimalist painting style", "style", 1)]),
+    # x83 onwards: Qwen-Image-2.1 results (all_is_correct_qwen's source cases, one
+    # subset each; some_is_correct_qwen/<name>/), each checked closely.
+    dict(id="x83", src="some_is_correct_qwen/orange_carved", result="supp_e2_e3.png", subject="objects",
+         title="Carved orange, same street",
+         edits=[("Halloween carving", "appearance", 1),
+                ("table with white candles, dark background", "background", 0),
+                ("black and white pencil sketch style", "style", 0)]),
+    dict(id="x84", src="some_is_correct_qwen/collie_shirt_sit", result="supp_e3.png", subject="creatures",
+         title="A collie in a red shirt, sitting",
+         edits=[("add a red T-shirt", "object", 1),
+                ("sitting pose", "pose", 1),
+                ("add a minimalist painting style", "style", 0)]),
+    dict(id="x85", src="some_is_correct_qwen/stbernard_pencil", result="supp_e1.png", subject="creatures",
+         title="Colored pencil, still sitting",
+         edits=[("jumping", "pose", 0),
+                ("add colored pencil style", "style", 1)]),
+    dict(id="x86", src="some_is_correct_qwen/mug_comic", result="supp_e1.png", subject="objects",
+         title="Comic style, mug stays on the table",
+         edits=[("floating pose", "pose", 0),
+                ("add colored comic style", "style", 1)]),
+    dict(id="x87", src="some_is_correct_qwen/crown_angry", result="supp_e2.png", subject="people",
+         title="Crown and a scowl, no necklace",
+         edits=[("add an open-top crown", "object", 1),
+                ("add a gold seamless necklace", "object", 0),
+                ("add an angry expression", "expression", 1)]),
+    dict(id="x88", src="some_is_correct_qwen/armor_kindergarten", result="supp_e2.png", subject="people",
+         title="Armor in the kindergarten, no hat",
+         edits=[("add armor", "object", 1),
+                ("add a beach hat", "object", 0),
+                ("add a kindergarten background", "background", 1)]),
+    dict(id="x89", src="some_is_correct_qwen/beard_shocked", result="supp_e1.png", subject="people",
+         title="A beard, the open mouth stays",
+         edits=[("poker face expression", "expression", 0),
+                ("add a beard", "object", 1)]),
+    dict(id="x90", src="some_is_correct_qwen/redhair_hills", result="supp_e1_e4.png", subject="people",
+         title="Red hair and green hills, no crown",
+         edits=[("add an open-top crown", "object", 0),
+                ("add red hair", "appearance", 1),
+                ("add a rolling green hills background", "background", 1),
+                ("add Van Gogh style", "style", 0)]),
 ]
 
 
@@ -540,12 +580,11 @@ EXAMPLES = [
 # most, portraits spread so no two follow each other, and subsets of the same
 # pair kept apart.
 EXAMPLE_ORDER = [
-    "x59", "x67", "x56", "x78", "x71", "x58", "x3", "x24",
-    "x13", "x2", "x80", "x63", "x76", "x23", "x4", "x17",
-    "x70", "x44", "x79", "x30", "x74", "x27", "x55", "x32",
-    "x77", "x14", "x69", "x26", "x15", "x72", "x9", "x53",
-    "x1", "x81", "x42", "x68", "x57", "x50", "x82", "x8",
-    "x51", "x47", "x64",
+    "x59", "x56", "x84", "x87", "x58", "x3", "x89", "x86",
+    "x13", "x88", "x2", "x63", "x85", "x23", "x4", "x90",
+    "x44", "x83", "x30", "x80", "x27", "x51", "x32", "x14",
+    "x77", "x17", "x15", "x26", "x70", "x9", "x1", "x74",
+    "x42", "x82", "x50", "x8", "x68", "x47",
 ]
 
 # Portraits kept in EXAMPLES and in `new figures/` but not built or shown, so
@@ -570,6 +609,19 @@ REJECTED = {
     "x52": "comic style leaks into the mountains",
     "x73": "comic style leaks into the mountains",
     "x54": "the carved watermelon turns yellow and reads as another fruit",
+    "x55": "the kept bed lamp never appears; the oil style is a muddy smear",
+    "x72": "the silver car turns white, with a stray badge and broken sky",
+    "x71": "the logo is too small to see at a glance",
+    "x78": "the red shirt is only a small patch on the dog",
+    "x67": "the apple turns into an orange pumpkin",
+    "x24": "the kept oil painting style barely shows",
+    "x57": "the pose change is barely visible",
+    "x64": "the pose change is modest",
+    "x53": "the carving is almost invisible",
+    "x69": "a muddy pencil render",
+    "x76": "the same pair and query as x59, a milder change",
+    "x79": "a mild change; the third use of its pair",
+    "x81": "a near-copy of x82",
 }
 
 

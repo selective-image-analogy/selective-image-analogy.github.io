@@ -1,0 +1,7 @@
+{
+ "edit1": "Halloween carving",
+ "edit2": "table with white candles and dark background",
+ "edit3": "add black and white pencil sketch style",
+ "benchmark_case": "3edits_non_creature/setting1/data10",
+ "kept_edits": "1"
+}

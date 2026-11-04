@@ -1,0 +1,8 @@
+{
+ "edit1": "add open-top crown without jewelries",
+ "edit2": "add red color hair",
+ "edit3": "add rolling green hills background",
+ "edit4": "add Van gogh style",
+ "benchmark_case": "4edits/setting1/data6",
+ "kept_edits": "23"
+}

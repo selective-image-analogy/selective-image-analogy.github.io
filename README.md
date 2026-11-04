@@ -209,8 +209,14 @@ connection shows first).
   A result enlarged before it has arrived opens as its light copy and sharpens.
 * `some_is_correct/<n>/` (1–82) — one demonstration with a **single** rendered
   subset each. `EXAMPLE_ORDER` lists the ones shown in the *Examples*
-  section, in the order they play (mostly objects and animals, never two
-  portraits in a row). `HELD_BACK` keeps 28 portraits out so people don't dominate
+  section, in the order they play (objects and animals spread through the
+  portraits, similar ones kept apart). x83–x90 are **Qwen-Image-2.1 results**
+  (`some_is_correct_qwen/<name>/`, one subset each, scaled to 512 px tall;
+  `prompt.json` names the benchmark case), each checked closely against
+  its reference. The gallery was audited example by example: 13 weak or
+  repeated examples (a barely visible logo, a dog that barely changes, a kept
+  edit that never shows, ...) moved to `REJECTED` with their reason.
+  `HELD_BACK` keeps 28 portraits out so people don't dominate
   the page, and `REJECTED` lists results that fail (a dropped edit shows up
   anyway, or the kept one barely shows) or keep every edit, with the reason
   for each. Sources and metadata stay for all of them. Every example must be

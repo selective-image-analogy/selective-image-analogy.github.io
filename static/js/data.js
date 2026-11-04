@@ -423,34 +423,6 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x67",
-    "title": "Carved apple, still in color",
-    "subject": "objects",
-    "w": 368,
-    "h": 512,
-    "dir": "static/images/examples/x67",
-    "edits": [
-      {
-        "id": "e1",
-        "label": "add carved Halloween texture",
-        "type": "appearance",
-        "kept": true
-      },
-      {
-        "id": "e2",
-        "label": "spooky candlelit table, dark background",
-        "type": "background",
-        "kept": false
-      },
-      {
-        "id": "e3",
-        "label": "black and white pencil style",
-        "type": "style",
-        "kept": false
-      }
-    ]
-  },
-  {
     "id": "x56",
     "title": "Sunglasses and a frown, no meadow",
     "subject": "people",
@@ -479,12 +451,12 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x78",
-    "title": "Just the red shirt",
+    "id": "x84",
+    "title": "A collie in a red shirt, sitting",
     "subject": "creatures",
-    "w": 368,
+    "w": 377,
     "h": 512,
-    "dir": "static/images/examples/x78",
+    "dir": "static/images/examples/x84",
     "edits": [
       {
         "id": "e1",
@@ -496,7 +468,7 @@ window.SIA_EXAMPLES = [
         "id": "e2",
         "label": "sitting pose",
         "type": "pose",
-        "kept": false
+        "kept": true
       },
       {
         "id": "e3",
@@ -507,30 +479,30 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x71",
-    "title": "Just the dinosaur logo",
-    "subject": "objects",
-    "w": 368,
+    "id": "x87",
+    "title": "Crown and a scowl, no necklace",
+    "subject": "people",
+    "w": 398,
     "h": 512,
-    "dir": "static/images/examples/x71",
+    "dir": "static/images/examples/x87",
     "edits": [
       {
         "id": "e1",
-        "label": "add a dinosaur logo",
+        "label": "add an open-top crown",
         "type": "object",
         "kept": true
       },
       {
         "id": "e2",
-        "label": "mountain road with blue sky background",
-        "type": "background",
+        "label": "add a gold seamless necklace",
+        "type": "object",
         "kept": false
       },
       {
         "id": "e3",
-        "label": "comic style",
-        "type": "style",
-        "kept": false
+        "label": "add an angry expression",
+        "type": "expression",
+        "kept": true
       }
     ]
   },
@@ -597,28 +569,44 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x24",
-    "title": "Red lamp in oils, no bench",
-    "subject": "objects",
-    "w": 368,
+    "id": "x89",
+    "title": "A beard, the open mouth stays",
+    "subject": "people",
+    "w": 398,
     "h": 512,
-    "dir": "static/images/examples/x24",
+    "dir": "static/images/examples/x89",
     "edits": [
       {
         "id": "e1",
-        "label": "add a park metal bench",
-        "type": "object",
+        "label": "poker face expression",
+        "type": "expression",
         "kept": false
       },
       {
         "id": "e2",
-        "label": "turn the lamp light red",
-        "type": "appearance",
+        "label": "add a beard",
+        "type": "object",
         "kept": true
+      }
+    ]
+  },
+  {
+    "id": "x86",
+    "title": "Comic style, mug stays on the table",
+    "subject": "objects",
+    "w": 377,
+    "h": 512,
+    "dir": "static/images/examples/x86",
+    "edits": [
+      {
+        "id": "e1",
+        "label": "floating pose",
+        "type": "pose",
+        "kept": false
       },
       {
-        "id": "e3",
-        "label": "add oil painting style",
+        "id": "e2",
+        "label": "add colored comic style",
         "type": "style",
         "kept": true
       }
@@ -653,6 +641,34 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
+    "id": "x88",
+    "title": "Armor in the kindergarten, no hat",
+    "subject": "people",
+    "w": 398,
+    "h": 512,
+    "dir": "static/images/examples/x88",
+    "edits": [
+      {
+        "id": "e1",
+        "label": "add armor",
+        "type": "object",
+        "kept": true
+      },
+      {
+        "id": "e2",
+        "label": "add a beach hat",
+        "type": "object",
+        "kept": false
+      },
+      {
+        "id": "e3",
+        "label": "add a kindergarten background",
+        "type": "background",
+        "kept": true
+      }
+    ]
+  },
+  {
     "id": "x2",
     "title": "The carving, in full color",
     "subject": "objects",
@@ -677,34 +693,6 @@ window.SIA_EXAMPLES = [
         "label": "black and white pencil style",
         "type": "style",
         "kept": false
-      }
-    ]
-  },
-  {
-    "id": "x80",
-    "title": "Only the painting style",
-    "subject": "creatures",
-    "w": 368,
-    "h": 512,
-    "dir": "static/images/examples/x80",
-    "edits": [
-      {
-        "id": "e1",
-        "label": "add a red T-shirt",
-        "type": "object",
-        "kept": false
-      },
-      {
-        "id": "e2",
-        "label": "sitting pose",
-        "type": "pose",
-        "kept": false
-      },
-      {
-        "id": "e3",
-        "label": "add a minimalist painting style",
-        "type": "style",
-        "kept": true
       }
     ]
   },
@@ -743,30 +731,24 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x76",
-    "title": "Wings open, no lava or gold",
+    "id": "x85",
+    "title": "Colored pencil, still sitting",
     "subject": "creatures",
-    "w": 368,
+    "w": 377,
     "h": 512,
-    "dir": "static/images/examples/x76",
+    "dir": "static/images/examples/x85",
     "edits": [
       {
         "id": "e1",
-        "label": "add lava to the ground",
-        "type": "background",
+        "label": "jumping",
+        "type": "pose",
         "kept": false
       },
       {
         "id": "e2",
-        "label": "open the wings",
-        "type": "pose",
+        "label": "add colored pencil style",
+        "type": "style",
         "kept": true
-      },
-      {
-        "id": "e3",
-        "label": "add gold color",
-        "type": "appearance",
-        "kept": false
       }
     ]
   },
@@ -821,28 +803,28 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x17",
-    "title": "Crown, green hair and Paris, as a photo",
+    "id": "x90",
+    "title": "Red hair and green hills, no crown",
     "subject": "people",
-    "w": 384,
+    "w": 398,
     "h": 512,
-    "dir": "static/images/examples/x17",
+    "dir": "static/images/examples/x90",
     "edits": [
       {
         "id": "e1",
-        "label": "add an open-top crown without jewellery",
+        "label": "add an open-top crown",
         "type": "object",
-        "kept": true
+        "kept": false
       },
       {
         "id": "e2",
-        "label": "add green hair",
+        "label": "add red hair",
         "type": "appearance",
         "kept": true
       },
       {
         "id": "e3",
-        "label": "add a Paris background",
+        "label": "add a rolling green hills background",
         "type": "background",
         "kept": true
       },
@@ -851,34 +833,6 @@ window.SIA_EXAMPLES = [
         "label": "add Van Gogh style",
         "type": "style",
         "kept": false
-      }
-    ]
-  },
-  {
-    "id": "x70",
-    "title": "Candlelit pencil sketch, no carving",
-    "subject": "objects",
-    "w": 368,
-    "h": 512,
-    "dir": "static/images/examples/x70",
-    "edits": [
-      {
-        "id": "e1",
-        "label": "add carved Halloween texture",
-        "type": "appearance",
-        "kept": false
-      },
-      {
-        "id": "e2",
-        "label": "spooky candlelit table, dark background",
-        "type": "background",
-        "kept": true
-      },
-      {
-        "id": "e3",
-        "label": "black and white pencil style",
-        "type": "style",
-        "kept": true
       }
     ]
   },
@@ -905,28 +859,28 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x79",
-    "title": "Only the sit",
-    "subject": "creatures",
-    "w": 368,
+    "id": "x83",
+    "title": "Carved orange, same street",
+    "subject": "objects",
+    "w": 377,
     "h": 512,
-    "dir": "static/images/examples/x79",
+    "dir": "static/images/examples/x83",
     "edits": [
       {
         "id": "e1",
-        "label": "add a red T-shirt",
-        "type": "object",
-        "kept": false
-      },
-      {
-        "id": "e2",
-        "label": "sitting pose",
-        "type": "pose",
+        "label": "Halloween carving",
+        "type": "appearance",
         "kept": true
       },
       {
+        "id": "e2",
+        "label": "table with white candles, dark background",
+        "type": "background",
+        "kept": false
+      },
+      {
         "id": "e3",
-        "label": "add a minimalist painting style",
+        "label": "black and white pencil sketch style",
         "type": "style",
         "kept": false
       }
@@ -955,23 +909,29 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x74",
-    "title": "Red paint, no star",
-    "subject": "objects",
+    "id": "x80",
+    "title": "Only the painting style",
+    "subject": "creatures",
     "w": 368,
     "h": 512,
-    "dir": "static/images/examples/x74",
+    "dir": "static/images/examples/x80",
     "edits": [
       {
         "id": "e1",
-        "label": "add a golden star logo to the hood",
+        "label": "add a red T-shirt",
         "type": "object",
         "kept": false
       },
       {
         "id": "e2",
-        "label": "change the car color to red",
-        "type": "appearance",
+        "label": "sitting pose",
+        "type": "pose",
+        "kept": false
+      },
+      {
+        "id": "e3",
+        "label": "add a minimalist painting style",
+        "type": "style",
         "kept": true
       }
     ]
@@ -1011,30 +971,24 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x55",
-    "title": "Oil painting, no moss",
-    "subject": "scenes",
+    "id": "x51",
+    "title": "Star logo, original silver paint",
+    "subject": "objects",
     "w": 368,
     "h": 512,
-    "dir": "static/images/examples/x55",
+    "dir": "static/images/examples/x51",
     "edits": [
       {
         "id": "e1",
-        "label": "add a bed lamp",
+        "label": "add a golden star logo to the hood",
         "type": "object",
         "kept": true
       },
       {
         "id": "e2",
-        "label": "add moss all over the scene",
+        "label": "change the car color to red",
         "type": "appearance",
         "kept": false
-      },
-      {
-        "id": "e3",
-        "label": "old oil painting style",
-        "type": "style",
-        "kept": true
       }
     ]
   },
@@ -1056,34 +1010,6 @@ window.SIA_EXAMPLES = [
         "id": "e2",
         "label": "surprised expression",
         "type": "expression",
-        "kept": true
-      }
-    ]
-  },
-  {
-    "id": "x77",
-    "title": "Gold and open wings, no lava",
-    "subject": "creatures",
-    "w": 368,
-    "h": 512,
-    "dir": "static/images/examples/x77",
-    "edits": [
-      {
-        "id": "e1",
-        "label": "add lava to the ground",
-        "type": "background",
-        "kept": false
-      },
-      {
-        "id": "e2",
-        "label": "open the wings",
-        "type": "pose",
-        "kept": true
-      },
-      {
-        "id": "e3",
-        "label": "add gold color",
-        "type": "appearance",
         "kept": true
       }
     ]
@@ -1117,30 +1043,92 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x69",
-    "title": "Watermelon in pencil, not carved",
-    "subject": "objects",
+    "id": "x77",
+    "title": "Gold and open wings, no lava",
+    "subject": "creatures",
     "w": 368,
     "h": 512,
-    "dir": "static/images/examples/x69",
+    "dir": "static/images/examples/x77",
     "edits": [
       {
         "id": "e1",
-        "label": "add carved Halloween texture",
-        "type": "appearance",
-        "kept": false
-      },
-      {
-        "id": "e2",
-        "label": "spooky candlelit table, dark background",
+        "label": "add lava to the ground",
         "type": "background",
         "kept": false
       },
       {
-        "id": "e3",
-        "label": "black and white pencil style",
-        "type": "style",
+        "id": "e2",
+        "label": "open the wings",
+        "type": "pose",
         "kept": true
+      },
+      {
+        "id": "e3",
+        "label": "add gold color",
+        "type": "appearance",
+        "kept": true
+      }
+    ]
+  },
+  {
+    "id": "x17",
+    "title": "Crown, green hair and Paris, as a photo",
+    "subject": "people",
+    "w": 384,
+    "h": 512,
+    "dir": "static/images/examples/x17",
+    "edits": [
+      {
+        "id": "e1",
+        "label": "add an open-top crown without jewellery",
+        "type": "object",
+        "kept": true
+      },
+      {
+        "id": "e2",
+        "label": "add green hair",
+        "type": "appearance",
+        "kept": true
+      },
+      {
+        "id": "e3",
+        "label": "add a Paris background",
+        "type": "background",
+        "kept": true
+      },
+      {
+        "id": "e4",
+        "label": "add Van Gogh style",
+        "type": "style",
+        "kept": false
+      }
+    ]
+  },
+  {
+    "id": "x15",
+    "title": "Red shirt and sit, no painting",
+    "subject": "creatures",
+    "w": 368,
+    "h": 512,
+    "dir": "static/images/examples/x15",
+    "edits": [
+      {
+        "id": "e1",
+        "label": "add a red T-shirt",
+        "type": "object",
+        "kept": true
+      },
+      {
+        "id": "e2",
+        "label": "sitting pose",
+        "type": "pose",
+        "kept": true
+      },
+      {
+        "id": "e3",
+        "label": "add a minimalist painting style",
+        "type": "style",
+        "kept": false
       }
     ]
   },
@@ -1179,56 +1167,28 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x15",
-    "title": "Red shirt and sit, no painting",
-    "subject": "creatures",
-    "w": 368,
-    "h": 512,
-    "dir": "static/images/examples/x15",
-    "edits": [
-      {
-        "id": "e1",
-        "label": "add a red T-shirt",
-        "type": "object",
-        "kept": true
-      },
-      {
-        "id": "e2",
-        "label": "sitting pose",
-        "type": "pose",
-        "kept": true
-      },
-      {
-        "id": "e3",
-        "label": "add a minimalist painting style",
-        "type": "style",
-        "kept": false
-      }
-    ]
-  },
-  {
-    "id": "x72",
-    "title": "Comic mountain road, no logo",
+    "id": "x70",
+    "title": "Candlelit pencil sketch, no carving",
     "subject": "objects",
     "w": 368,
     "h": 512,
-    "dir": "static/images/examples/x72",
+    "dir": "static/images/examples/x70",
     "edits": [
       {
         "id": "e1",
-        "label": "add a dinosaur logo",
-        "type": "object",
+        "label": "add carved Halloween texture",
+        "type": "appearance",
         "kept": false
       },
       {
         "id": "e2",
-        "label": "mountain road with blue sky background",
+        "label": "spooky candlelit table, dark background",
         "type": "background",
         "kept": true
       },
       {
         "id": "e3",
-        "label": "comic style",
+        "label": "black and white pencil style",
         "type": "style",
         "kept": true
       }
@@ -1263,34 +1223,6 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x53",
-    "title": "Carved pineapple by candlelight",
-    "subject": "objects",
-    "w": 368,
-    "h": 512,
-    "dir": "static/images/examples/x53",
-    "edits": [
-      {
-        "id": "e1",
-        "label": "add carved Halloween texture",
-        "type": "appearance",
-        "kept": true
-      },
-      {
-        "id": "e2",
-        "label": "spooky candlelit table, dark background",
-        "type": "background",
-        "kept": true
-      },
-      {
-        "id": "e3",
-        "label": "black and white pencil style",
-        "type": "style",
-        "kept": false
-      }
-    ]
-  },
-  {
     "id": "x1",
     "title": "Armor, without the hat or the jungle",
     "subject": "people",
@@ -1319,29 +1251,23 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x81",
-    "title": "Sitting in paint, no shirt",
-    "subject": "creatures",
+    "id": "x74",
+    "title": "Red paint, no star",
+    "subject": "objects",
     "w": 368,
     "h": 512,
-    "dir": "static/images/examples/x81",
+    "dir": "static/images/examples/x74",
     "edits": [
       {
         "id": "e1",
-        "label": "add a red T-shirt",
+        "label": "add a golden star logo to the hood",
         "type": "object",
         "kept": false
       },
       {
         "id": "e2",
-        "label": "sitting pose",
-        "type": "pose",
-        "kept": true
-      },
-      {
-        "id": "e3",
-        "label": "add a minimalist painting style",
-        "type": "style",
+        "label": "change the car color to red",
+        "type": "appearance",
         "kept": true
       }
     ]
@@ -1369,52 +1295,30 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x68",
-    "title": "Carved apple in pencil, no candles",
-    "subject": "objects",
+    "id": "x82",
+    "title": "Shirt and paint, still standing",
+    "subject": "creatures",
     "w": 368,
     "h": 512,
-    "dir": "static/images/examples/x68",
+    "dir": "static/images/examples/x82",
     "edits": [
       {
         "id": "e1",
-        "label": "add carved Halloween texture",
-        "type": "appearance",
+        "label": "add a red T-shirt",
+        "type": "object",
         "kept": true
       },
       {
         "id": "e2",
-        "label": "spooky candlelit table, dark background",
-        "type": "background",
+        "label": "sitting pose",
+        "type": "pose",
         "kept": false
       },
       {
         "id": "e3",
-        "label": "black and white pencil style",
+        "label": "add a minimalist painting style",
         "type": "style",
         "kept": true
-      }
-    ]
-  },
-  {
-    "id": "x57",
-    "title": "Sitting, but not blue",
-    "subject": "creatures",
-    "w": 368,
-    "h": 512,
-    "dir": "static/images/examples/x57",
-    "edits": [
-      {
-        "id": "e1",
-        "label": "sitting pose",
-        "type": "pose",
-        "kept": true
-      },
-      {
-        "id": "e2",
-        "label": "change the dog color to blue",
-        "type": "appearance",
-        "kept": false
       }
     ]
   },
@@ -1453,34 +1357,6 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x82",
-    "title": "Shirt and paint, still standing",
-    "subject": "creatures",
-    "w": 368,
-    "h": 512,
-    "dir": "static/images/examples/x82",
-    "edits": [
-      {
-        "id": "e1",
-        "label": "add a red T-shirt",
-        "type": "object",
-        "kept": true
-      },
-      {
-        "id": "e2",
-        "label": "sitting pose",
-        "type": "pose",
-        "kept": false
-      },
-      {
-        "id": "e3",
-        "label": "add a minimalist painting style",
-        "type": "style",
-        "kept": true
-      }
-    ]
-  },
-  {
     "id": "x8",
     "title": "Wig and alley, in color",
     "subject": "people",
@@ -1515,24 +1391,30 @@ window.SIA_EXAMPLES = [
     ]
   },
   {
-    "id": "x51",
-    "title": "Star logo, original silver paint",
+    "id": "x68",
+    "title": "Carved apple in pencil, no candles",
     "subject": "objects",
     "w": 368,
     "h": 512,
-    "dir": "static/images/examples/x51",
+    "dir": "static/images/examples/x68",
     "edits": [
       {
         "id": "e1",
-        "label": "add a golden star logo to the hood",
-        "type": "object",
+        "label": "add carved Halloween texture",
+        "type": "appearance",
         "kept": true
       },
       {
         "id": "e2",
-        "label": "change the car color to red",
-        "type": "appearance",
+        "label": "spooky candlelit table, dark background",
+        "type": "background",
         "kept": false
+      },
+      {
+        "id": "e3",
+        "label": "black and white pencil style",
+        "type": "style",
+        "kept": true
       }
     ]
   },
@@ -1561,28 +1443,6 @@ window.SIA_EXAMPLES = [
         "label": "jungle background",
         "type": "background",
         "kept": true
-      }
-    ]
-  },
-  {
-    "id": "x64",
-    "title": "Sitting, still brown",
-    "subject": "creatures",
-    "w": 368,
-    "h": 512,
-    "dir": "static/images/examples/x64",
-    "edits": [
-      {
-        "id": "e1",
-        "label": "sitting pose",
-        "type": "pose",
-        "kept": true
-      },
-      {
-        "id": "e2",
-        "label": "change the dog color to blue",
-        "type": "appearance",
-        "kept": false
       }
     ]
   }
